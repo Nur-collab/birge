@@ -39,7 +39,8 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
 
     const connect = () => {
       if (intentionalClose) return;
-      const socket = new WebSocket(`ws://localhost:8000/ws/chat/${tripId}/${currentUser.id}`);
+      const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com').replace('https://', 'wss://').replace('http://', 'ws://');
+      const socket = new WebSocket(`${WS_URL}/ws/chat/${tripId}/${currentUser.id}`);
       ws.current = socket;
 
       socket.onmessage = (event) => {
