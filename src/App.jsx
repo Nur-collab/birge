@@ -11,7 +11,10 @@ import Login from './screens/Login';
 import InstallPWA from './components/InstallPWA';
 import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
+import TripRequestModal from './components/TripRequestModal';
 import { api } from './utils/api';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
 
 // --- Helpers для localStorage persistence ---
 const TRIP_STORAGE_KEY = 'birge_active_trip';
@@ -38,6 +41,8 @@ function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showReview, setShowReview] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState(null);
+  const [myTripId, setMyTripId] = useState(null); // ID поездки текущего пользователя
+  const [incomingRequest, setIncomingRequest] = useState(null); // для водителя
 
   // Обёртка setActiveTrip — автоматически пишет/очищает localStorage
   const setActiveTrip = useCallback((trip) => {
@@ -58,6 +63,23 @@ function App() {
         .catch(() => handleLogout());
     }
   }, [isLoggedIn]);
+
+  // Polling входящих запросов для ВОДИТЕЛЯ каждые 5 секунд
+  useEffect(() => {
+    if (!currentUser || !searchCriteria || searchCriteria.role !== 'driver') return;
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` }
+        });
+        const requests = await res.json();
+        if (requests.length > 0 && !incomingRequest) {
+          setIncomingRequest(requests[0]);
+        }
+      } catch (e) { }
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [currentUser, searchCriteria, incomingRequest]);
 
   const handleLoggedIn = () => setIsLoggedIn(true);
 
@@ -111,6 +133,12 @@ function App() {
       };
 
       await api.createTrip(apiTripData);
+      setMyTripId(null); // reset
+      // После создания — получаем реальный ID из БД
+      const myTrips = await api.getMyTrips();
+      if (myTrips.length > 0) {
+        setMyTripId(myTrips[myTrips.length - 1].id);
+      }
 
       if (tripData.role === 'driver') {
         setCurrentUser(prev => ({ ...prev, trips_today: prev.trips_today + 1 }));
@@ -162,6 +190,30 @@ function App() {
     }
   };
 
+  const handleAcceptRequest = async (requestId, tripId, requesterId, requesterTripId) => {
+    await fetch(`${API_URL}/trip-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
+      body: JSON.stringify({ status: 'accepted' })
+    });
+    setIncomingRequest(null);
+    // Находим поездку пассажира из matches и переходим в чат
+    const matchTrip = matches.find(m => m.user_id === requesterId) || {
+      id: tripId, user_id: requesterId, from: incomingRequest?.origin, to: incomingRequest?.destination,
+      time: incomingRequest?.time, user: { id: requesterId, name: incomingRequest?.requester_name, photo: incomingRequest?.requester_photo }
+    };
+    await handleConnect(matchTrip);
+  };
+
+  const handleDeclineRequest = async (requestId) => {
+    await fetch(`${API_URL}/trip-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
+      body: JSON.stringify({ status: 'declined' })
+    });
+    setIncomingRequest(null);
+  };
+
   const handleConnect = async (trip) => {
     // Обновляем статус поездки на 'matched'
     await api.updateTripStatus(trip.id, 'matched');
@@ -211,6 +263,7 @@ function App() {
             isLoading={isSearching}
             searchCriteria={searchCriteria}
             currentUser={currentUser}
+            myTripId={myTripId}
           />
         );
       case 'trip':
@@ -339,6 +392,14 @@ function App() {
           width: 10px; height: 10px; min-width: unset; right: 14px; padding: 0;
         }
       `}</style>
+      {/* Модал входящего запроса для водителя */}
+      {incomingRequest && (
+        <TripRequestModal
+          request={incomingRequest}
+          onAccept={handleAcceptRequest}
+          onDecline={handleDeclineRequest}
+        />
+      )}
     </div>
   );
 }
