@@ -1,0 +1,346 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Home, Users, Map, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import Dashboard from './screens/Dashboard';
+import Matches from './screens/Matches';
+import Trip from './screens/Trip';
+import Profile from './screens/Profile';
+import Settings from './screens/Settings';
+import TripHistory from './screens/TripHistory';
+import Login from './screens/Login';
+import InstallPWA from './components/InstallPWA';
+import PushNotification from './components/PushNotification';
+import ReviewModal from './components/ReviewModal';
+import { api } from './utils/api';
+
+// --- Helpers для localStorage persistence ---
+const TRIP_STORAGE_KEY = 'birge_active_trip';
+const saveTrip = (trip) => trip
+  ? localStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify(trip))
+  : localStorage.removeItem(TRIP_STORAGE_KEY);
+const loadTrip = () => {
+  try { return JSON.parse(localStorage.getItem(TRIP_STORAGE_KEY)); }
+  catch { return null; }
+};
+
+function App() {
+  const { t } = useTranslation();
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('birge_token'));
+  const [activeTab, setActiveTab] = useState(() => {
+    // Восстанавливаем таб — если была активная поездка, переходим сразу на неё
+    return loadTrip() ? 'trip' : 'home';
+  });
+  const [matches, setMatches] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeTrip, setActiveTripState] = useState(loadTrip);
+  const [notification, setNotification] = useState({ show: false, title: '', message: '' });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showReview, setShowReview] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState(null);
+
+  // Обёртка setActiveTrip — автоматически пишет/очищает localStorage
+  const setActiveTrip = useCallback((trip) => {
+    setActiveTripState(trip);
+    saveTrip(trip);
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      api.getCurrentUser()
+        .then(user => {
+          setCurrentUser(user);
+          // Запрашиваем разрешения на Push-уведомления
+          if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+          }
+        })
+        .catch(() => handleLogout());
+    }
+  }, [isLoggedIn]);
+
+  const handleLoggedIn = () => setIsLoggedIn(true);
+
+  const handleLogout = () => {
+    localStorage.removeItem('birge_token');
+    saveTrip(null);
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    setActiveTripState(null);
+    setActiveTab('home');
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLoggedIn={handleLoggedIn} />;
+  }
+
+  const showNotification = (title, message) => {
+    setNotification({ show: true, title, message });
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'trip') setUnreadCount(0); // сброс непрочитанных при открытии чата
+  };
+
+  // Колбэк из Chat — новое входящее сообщение
+  const handleNewChatMessage = useCallback(() => {
+    setActiveTab(current => {
+      if (current !== 'trip') {
+        setUnreadCount(n => n + 1);
+      }
+      return current;
+    });
+  }, []);
+
+  const handleSearch = async (tripData) => {
+    if (!currentUser) return showNotification('Ошибка', 'Не удалось загрузить пользователя');
+
+    setActiveTab('matches');
+    setMatches([]);
+    setIsSearching(true);
+    setSearchCriteria(tripData);
+
+    try {
+      const apiTripData = {
+        role: tripData.role,
+        origin: tripData.from,
+        destination: tripData.to,
+        time: tripData.time,
+        user_id: currentUser.id
+      };
+
+      await api.createTrip(apiTripData);
+
+      if (tripData.role === 'driver') {
+        setCurrentUser(prev => ({ ...prev, trips_today: prev.trips_today + 1 }));
+      }
+
+      // Небольшая задержка для красивой анимации скелетонов
+      setTimeout(async () => {
+        const foundMatches = await api.findMatches(
+          currentUser.id,
+          tripData.role,
+          tripData.from,
+          tripData.to,
+          tripData.time
+        );
+
+        const mappedMatches = foundMatches.map(m => ({
+          id: m.id,           // DB id поездки — используется как chatRoomId
+          role: m.role,
+          from: m.origin,
+          to: m.destination,
+          origin: m.origin,
+          destination: m.destination,
+          time: m.time,
+          userId: m.user_id,
+          user_id: m.user_id,
+          user: {
+            id: m.user?.id,
+            name: m.user?.name || 'Пользователь',
+            photo: m.user?.photo || `https://i.pravatar.cc/150?u=${m.user_id}`,
+            trust_rating: m.user?.trust_rating || 5.0,
+            is_verified: m.user?.is_verified || false,
+          }
+        }));
+
+        setMatches(mappedMatches);
+        setIsSearching(false);
+
+        if (mappedMatches.length > 0) {
+          showNotification('Найдены попутчики! 🎉', `Совпадений: ${mappedMatches.length}`);
+        } else {
+          showNotification('Пока нет совпадений', 'Мы уведомим вас, когда кто-то появится.');
+        }
+      }, 1200);
+
+    } catch (error) {
+      setIsSearching(false);
+      setActiveTab('home');
+      showNotification('Ошибка', error.message);
+    }
+  };
+
+  const handleConnect = async (trip) => {
+    // Обновляем статус поездки на 'matched'
+    await api.updateTripStatus(trip.id, 'matched');
+
+    setActiveTrip({ ...trip, participants: 2, date: 'Сегодня' });
+    setActiveTab('trip');
+    setUnreadCount(0);
+    showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
+  };
+
+  const handleFinishTrip = () => {
+    // Показываем модалку отзыва
+    setShowReview(true);
+  };
+
+  const handleReviewSubmit = async (rating, text) => {
+    if (activeTrip && activeTrip.user && currentUser) {
+      await api.submitReview(activeTrip.user.id, currentUser.name, rating, text);
+      await api.updateTripStatus(activeTrip.id, 'completed');
+    }
+    // Закрываем через 1.5 сек после успешной отправки
+    setTimeout(() => {
+      setShowReview(false);
+      setActiveTrip(null);
+      setActiveTab('home');
+    }, 1500);
+  };
+
+  const handleReviewSkip = async () => {
+    if (activeTrip) await api.updateTripStatus(activeTrip.id, 'completed');
+    setShowReview(false);
+    setActiveTrip(null);
+    setActiveTab('home');
+    showNotification('Поездка завершена', 'До следующей встречи!');
+  };
+
+  const renderScreen = () => {
+    switch (activeTab) {
+      case 'home':
+        return <Dashboard onSearch={handleSearch} />;
+      case 'matches':
+        return (
+          <Matches
+            matches={matches}
+            setMatches={setMatches}
+            onConnect={handleConnect}
+            isLoading={isSearching}
+            searchCriteria={searchCriteria}
+            currentUser={currentUser}
+          />
+        );
+      case 'trip':
+        if (!activeTrip) {
+          return (
+            <div className="screen-content" style={{ textAlign: 'center', marginTop: '3rem' }}>
+              <p style={{ color: '#6b7280', marginBottom: '1rem' }}>{t('matches.empty')}</p>
+              <button className="primary-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setActiveTab('home')}>
+                {t('dash.find_ride')}
+              </button>
+            </div>
+          );
+        }
+        return (
+          <Trip
+            trip={activeTrip}
+            currentUser={currentUser}
+            onNewMessage={handleNewChatMessage}
+            onPanic={() => showNotification('⚠️ Тревога!', 'Ваши координаты отправлены доверенному контакту.')}
+            onFinish={handleFinishTrip}
+          />
+        );
+      case 'profile':
+        return (
+          <Profile
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            onShowSettings={() => setActiveTab('settings')}
+            onShowHistory={() => setActiveTab('history')}
+          />
+        );
+      case 'settings':
+        return (
+          <Settings
+            currentUser={currentUser}
+            onBack={() => setActiveTab('profile')}
+            onUpdate={(updatedUser) => setCurrentUser(updatedUser)}
+          />
+        );
+      case 'history':
+        return (
+          <TripHistory
+            currentUser={currentUser}
+            onBack={() => setActiveTab('profile')}
+          />
+        );
+      default:
+        return <Dashboard onSearch={handleSearch} />;
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <PushNotification
+        show={notification.show}
+        title={notification.title}
+        message={notification.message}
+        onClose={() => setNotification({ ...notification, show: false })}
+      />
+
+      {showReview && (
+        <ReviewModal
+          partner={activeTrip?.user}
+          onSubmit={handleReviewSubmit}
+          onSkip={handleReviewSkip}
+        />
+      )}
+
+      <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'block' }}>
+        <h1>{t('title')}</h1>
+      </header>
+
+      <main className="main-content">
+        {renderScreen()}
+      </main>
+
+      <InstallPWA />
+
+      <nav className="bottom-nav">
+        <button className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => handleTabChange('home')}>
+          <Home size={24} />
+          <span>{t('nav.find')}</span>
+        </button>
+        <button className={`nav-item ${activeTab === 'matches' ? 'active' : ''}`} onClick={() => handleTabChange('matches')}>
+          <Users size={24} />
+          {matches.length > 0 && <span className="badge">{matches.length}</span>}
+          <span>{t('matches.title')}</span>
+        </button>
+        <button className={`nav-item ${activeTab === 'trip' ? 'active' : ''}`} onClick={() => handleTabChange('trip')}>
+          <Map size={24} />
+          {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+          {activeTrip && unreadCount === 0 && <span className="badge dot" />}
+          <span>{t('nav.create')}</span>
+        </button>
+        <button className={`nav-item ${(activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'active' : ''}`} onClick={() => handleTabChange('profile')}>
+          <User size={24} />
+          <span>{t('nav.profile')}</span>
+        </button>
+      </nav>
+
+      <style>{`
+        .app-container { padding-bottom: 70px; min-height: 100vh; }
+        .bottom-nav {
+          position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+          width: 100%; max-width: 480px; background: white;
+          display: flex; justify-content: space-around;
+          padding: 10px 0 15px 0; border-top: 1px solid #e5e7eb;
+          box-shadow: 0 -4px 10px rgba(0,0,0,0.03); z-index: 100;
+        }
+        .nav-item {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 4px; background: none; border: none; color: #9ca3af;
+          font-size: 0.75rem; font-weight: 500; cursor: pointer;
+          position: relative; transition: color 0.2s; padding: 0 12px;
+        }
+        .nav-item:hover { color: #6b7280; }
+        .nav-item.active { color: var(--primary); }
+        .badge {
+          position: absolute; top: -5px; right: 10px;
+          background: #f43f5e; color: white; font-size: 0.65rem;
+          font-weight: bold; min-width: 16px; height: 16px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          padding: 0 4px; border: 2px solid white;
+        }
+        .badge.dot {
+          width: 10px; height: 10px; min-width: unset; right: 14px; padding: 0;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default App;
