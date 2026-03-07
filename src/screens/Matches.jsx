@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Star, CheckCircle, Clock, Car, Send, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SkeletonCard from '../components/SkeletonCard';
@@ -27,6 +27,7 @@ const requestApi = {
 export default function Matches({ matches = [], setMatches, onConnect, isLoading = false, searchCriteria, currentUser, myTripId }) {
   const { t } = useTranslation();
   const [requestStatus, setRequestStatus] = useState({}); // { [tripId]: 'pending'|'accepted'|'declined' }
+  const connectedRef = useRef(false); // защита от повторного вызова onConnect
 
   // Автополлинг за совпадениями
   useEffect(() => {
@@ -58,15 +59,20 @@ export default function Matches({ matches = [], setMatches, onConnect, isLoading
   // Для пассажира: polling статуса запросов
   useEffect(() => {
     if (!currentUser || searchCriteria?.role !== 'passenger' || matches.length === 0) return;
+    connectedRef.current = false; // сброс при смене поисковых данных
     const pollReqStatus = setInterval(async () => {
       for (const trip of matches) {
         try {
           const st = await requestApi.checkStatus(currentUser.id, trip.id);
           if (st.status && st.status !== 'not_sent') {
             setRequestStatus(prev => ({ ...prev, [trip.id]: st.status }));
-            // Если принят — переходим в чат
-            if (st.status === 'accepted') {
-              onConnect({ ...trip, requestInfo: st });
+            // Если принят — переходим в чат ТОЛЬКО ОДИН РАЗ
+            if (st.status === 'accepted' && !connectedRef.current) {
+              connectedRef.current = true;
+              clearInterval(pollReqStatus);
+              // Используем trip_id из ответа, чтобы гарантировать совпадение с водителем
+              const chatTripId = st.trip_id || trip.id;
+              onConnect({ ...trip, id: chatTripId, requestInfo: st });
             }
           }
         } catch (e) { }
