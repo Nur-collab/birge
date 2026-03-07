@@ -154,10 +154,14 @@ export default function Matches({ matches = [], setMatches, onConnect, isLoading
 
               {/* Кнопка — разная в зависимости от роли */}
               {isDriver ? (
-                // Водитель просто видит совпавшего пассажира (его запросы придут через TripRequestModal)
-                <button className="primary-btn match-btn" onClick={() => onConnect(trip)}>
-                  {t('matches.open')}
-                </button>
+                // Водитель видит совпавшего пассажира, но принять запрос можно только через модал
+                <div style={{
+                  textAlign: 'center', padding: '10px',
+                  background: '#f0fdf4', borderRadius: '10px',
+                  color: '#059669', fontSize: '0.85rem', fontWeight: 500
+                }}>
+                  ✅ Совпадение найдено! Дождитесь запроса от пассажира — появится всплывающее окно.
+                </div>
               ) : (
                 // Пассажир отправляет запрос водителю
                 <button
