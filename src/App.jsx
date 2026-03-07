@@ -65,8 +65,9 @@ function App() {
   }, [isLoggedIn]);
 
   // Polling входящих запросов для ВОДИТЕЛЯ каждые 5 секунд
+  // Работает всегда пока пользователь залогинен (не только во время поиска)
   useEffect(() => {
-    if (!currentUser || !searchCriteria || searchCriteria.role !== 'driver') return;
+    if (!currentUser) return;
     const poll = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
@@ -79,7 +80,7 @@ function App() {
       } catch (e) { }
     }, 5000);
     return () => clearInterval(poll);
-  }, [currentUser, searchCriteria, incomingRequest]);
+  }, [currentUser, incomingRequest]);
 
   const handleLoggedIn = () => setIsLoggedIn(true);
 
@@ -117,6 +118,10 @@ function App() {
 
   const handleSearch = async (tripData) => {
     if (!currentUser) return showNotification('Ошибка', 'Не удалось загрузить пользователя');
+
+    // Очищаем старую поездку из localStorage чтобы избежать конфликтов
+    setActiveTrip(null);
+    setMyTripId(null);
 
     setActiveTab('matches');
     setMatches([]);
@@ -197,12 +202,17 @@ function App() {
       body: JSON.stringify({ status: 'accepted' })
     });
     setIncomingRequest(null);
-    // Находим поездку пассажира из matches и переходим в чат
-    const matchTrip = matches.find(m => m.user_id === requesterId) || {
-      id: tripId, user_id: requesterId, from: incomingRequest?.origin, to: incomingRequest?.destination,
-      time: incomingRequest?.time, user: { id: requesterId, name: incomingRequest?.requester_name, photo: incomingRequest?.requester_photo }
+    // Водитель переходит в чат с ID СВОЕЙ поездки (tripId = driver's trip_id)
+    // Это гарантирует что пассажир и водитель будут в одной WebSocket комнате
+    const tripForChat = {
+      id: tripId, // ID поездки ВОДИТЕЛЯ — общая комната для обоих
+      user_id: requesterId,
+      from: incomingRequest?.origin,
+      to: incomingRequest?.destination,
+      time: incomingRequest?.time,
+      user: { id: requesterId, name: incomingRequest?.requester_name, photo: incomingRequest?.requester_photo, trust_rating: incomingRequest?.requester_rating || 5.0 }
     };
-    await handleConnect(matchTrip);
+    await handleConnect(tripForChat);
   };
 
   const handleDeclineRequest = async (requestId) => {

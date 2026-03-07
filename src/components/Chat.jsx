@@ -17,9 +17,13 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
   useEffect(() => {
     // Не запускаем если нет пользователя или поездки
     if (!currentUser || !tripId) return;
+    // [DEBUG] Логируем ID комнаты
+    console.log(`[CHAT DEBUG] User ${currentUser.id} (${currentUser.name}) joining room trip_id=${tripId}`);
+
     const loadHistory = async () => {
       if (tripId) {
         const history = await api.getTripMessages(tripId);
+        console.log(`[CHAT DEBUG] Loaded ${history.length} history messages for trip ${tripId}`);
         // Преобразуем формат истории в формат внутреннего state
         const formattedHistory = history.map(h => ({
           id: h.id,
@@ -40,11 +44,18 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
     const connect = () => {
       if (intentionalClose) return;
       const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com').replace('https://', 'wss://').replace('http://', 'ws://');
-      const socket = new WebSocket(`${WS_URL}/ws/chat/${tripId}/${currentUser.id}`);
+      const wsUrl = `${WS_URL}/ws/chat/${tripId}/${currentUser.id}`;
+      console.log(`[CHAT DEBUG] Connecting WS: ${wsUrl}`);
+      const socket = new WebSocket(wsUrl);
       ws.current = socket;
+
+      socket.onopen = () => {
+        console.log(`[CHAT DEBUG] WS CONNECTED: room=${tripId}, user=${currentUser.id}`);
+      };
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log(`[CHAT DEBUG] Received msg:`, data);
         const newMsg = {
           id: data.id,
           senderId: data.sender_id,
@@ -64,6 +75,7 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
       };
 
       socket.onclose = () => {
+        console.log(`[CHAT DEBUG] WS closed for room=${tripId}`);
         if (!intentionalClose) {
           console.log('WebSocket disconnected, reconnecting in 3s...');
           reconnectTimer = setTimeout(connect, 3000);
@@ -71,7 +83,7 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
       };
 
       socket.onerror = (err) => {
-        console.warn('WebSocket error:', err);
+        console.warn('[CHAT DEBUG] WebSocket error:', err);
       };
     };
 
@@ -103,6 +115,13 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
 
   return (
     <div className="chat glass-panel">
+      {/* [DEBUG] Показывает ID комнаты — убрать после исправления */}
+      <div style={{
+        background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 6,
+        padding: '3px 8px', fontSize: 11, color: '#92400e', margin: '8px 8px 0', textAlign: 'center'
+      }}>
+        🔗 Room: <b>trip_{tripId}</b> | Я: <b>user_{currentUser.id}</b>
+      </div>
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
