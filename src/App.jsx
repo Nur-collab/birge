@@ -51,17 +51,30 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      api.getCurrentUser()
-        .then(user => {
-          setCurrentUser(user);
-          // Запрашиваем разрешения на Push-уведомления
-          if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-          }
-        })
-        .catch(() => handleLogout());
-    }
+    if (!isLoggedIn) return;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const tryLoad = async () => {
+      const user = await api.getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      } else {
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Бэкенд ещё грузится (Render cold start) — повторим через 3с
+          setTimeout(tryLoad, 3000);
+        } else {
+          // После 5 попыток — токен невалиден, выходим
+          handleLogout();
+        }
+      }
+    };
+
+    tryLoad();
   }, [isLoggedIn]);
 
   // Polling входящих запросов для ВОДИТЕЛЯ каждые 5 секунд

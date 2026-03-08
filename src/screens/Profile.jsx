@@ -6,15 +6,35 @@ import { api } from '../utils/api';
 export default function Profile({ currentUser: userProp, onLogout, onShowSettings, onShowHistory }) {
   const { t } = useTranslation();
   const [user, setUser] = useState(userProp || null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!userProp) {
-      // Fallback: загружаем если пропс не передан
-      api.getCurrentUser().then(data => setUser(data));
-    } else {
+    if (userProp) {
       setUser(userProp);
+      setError(false);
+    } else {
+      setError(false);
+      api.getCurrentUser().then(data => {
+        if (data) setUser(data);
+        else setError(true);
+      });
     }
   }, [userProp]);
+
+  if (!user && error) {
+    return (
+      <div className="profile screen-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: '1rem' }}>
+        <ShieldAlert size={40} color="#f43f5e" />
+        <p style={{ color: '#6b7280', textAlign: 'center' }}>Бэкенд недоступен.<br />Подождите немного и повторите попытку.</p>
+        <button className="primary-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => {
+          setError(false);
+          api.getCurrentUser().then(data => { if (data) setUser(data); else setError(true); });
+        }}>
+          Повторить
+        </button>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -49,7 +69,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
-            <div className="stat-value">{user.reviews.length}</div>
+            <div className="stat-value">{(user.reviews || []).length}</div>
             <div className="stat-label">{t('profile.reviews')}</div>
           </div>
           <div className="stat-divider"></div>
@@ -79,11 +99,11 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
 
       <div className="reviews-section">
         <h3>{t('profile.reviews_title')}</h3>
-        {user.reviews.length === 0 ? (
+        {(user.reviews || []).length === 0 ? (
           <p className="no-reviews">{t('profile.no_reviews')}</p>
         ) : (
           <div className="reviews-list">
-            {user.reviews.map(review => (
+            {(user.reviews || []).map(review => (
               <div key={review.id} className="review-card glass-panel">
                 <div className="review-header">
                   <span className="review-author">{review.author_name}</span>
