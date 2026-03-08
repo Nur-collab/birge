@@ -83,7 +83,7 @@ export const api = {
         return await response.json();
     },
 
-    findMatches: async (userId, role, origin, destination, time) => {
+    findMatches: async (userId, role, origin, destination, time, seats = 1) => {
         try {
             const params = new URLSearchParams({ user_id: userId, role, origin, destination, time });
             const response = await fetch(`${API_URL}/trips/matches?${params}`, {
@@ -94,6 +94,19 @@ export const api = {
         } catch (e) {
             console.error(e);
             return [];
+        }
+    },
+
+    getTripPassengers: async (tripId) => {
+        try {
+            const response = await fetch(`${API_URL}/trips/${tripId}/passengers`, {
+                headers: { ...getAuthHeader() }
+            });
+            if (!response.ok) return { passengers: [], seats: 3, seats_taken: 0 };
+            return await response.json();
+        } catch (e) {
+            console.error('getTripPassengers error:', e);
+            return { passengers: [], seats: 3, seats_taken: 0 };
         }
     },
 

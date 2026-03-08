@@ -215,26 +215,30 @@ function App() {
       body: JSON.stringify({ status: 'accepted' })
     });
     setIncomingRequest(null);
-    const tripForChat = {
-      id: tripId,
+
+    // Если водитель уже в поездке — просто приняли запрос, polling обновит список
+    if (activeTrip) {
+      showNotification('Пассажир принят! 👋', `${incomingRequest?.requester_name} едет с вами`);
+      return;
+    }
+
+    // Первый пассажир — переходим в экран поездки
+    const tripForDriver = {
+      id: tripId,         // ID поездки водителя = комната чата для всех
       user_id: requesterId,
       from: incomingRequest?.origin,
       to: incomingRequest?.destination,
       time: incomingRequest?.time,
-      // Водитель видит данные пассажира
+      isDriver: true,
+      seats: incomingRequest?.seats || 3,
       user: {
         id: requesterId,
         name: incomingRequest?.requester_name,
         photo: incomingRequest?.requester_photo,
-        trust_rating: incomingRequest?.requester_rating || 5.0
+        trust_rating: incomingRequest?.requester_rating || 5.0,
       },
-      // Свои данные машины (водитель уже знает свою машину)
-      myCarModel: currentUser?.car_model,
-      myCarPlate: currentUser?.car_plate,
-      myCarColor: currentUser?.car_color,
-      isDriver: true,
     };
-    await handleConnect(tripForChat);
+    await handleConnect(tripForDriver);
   };
 
   const handleDeclineRequest = async (requestId) => {

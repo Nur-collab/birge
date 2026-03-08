@@ -10,6 +10,7 @@ export default function Dashboard({ onSearch, currentUser }) {
   const [from, setFrom] = useState('Жилмассив Ала-Арча');
   const [to, setTo] = useState('ЦУМ (Центр)');
   const [time, setTime] = useState('08:15');
+  const [seats, setSeats] = useState(3);
   const [geoLoading, setGeoLoading] = useState(false);
 
   const handleGeolocate = () => {
@@ -46,7 +47,7 @@ export default function Dashboard({ onSearch, currentUser }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch({ role, from, to, time });
+    onSearch({ role, from, to, time, seats: role === 'driver' ? seats : 1 });
   };
 
   return (
@@ -141,6 +142,25 @@ export default function Dashboard({ onSearch, currentUser }) {
             className="time-input"
           />
         </div>
+
+        {/* Количество мест (только для водителя) */}
+        {role === 'driver' && (
+          <div className="seats-row">
+            <span className="seats-label">🪑 Свободных мест</span>
+            <div className="seats-btns">
+              {[1, 2, 3, 4].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`seat-btn ${seats === n ? 'active' : ''}`}
+                  onClick={() => setSeats(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button type="submit" className="primary-btn search-btn">
           <Search size={18} />
@@ -293,6 +313,37 @@ export default function Dashboard({ onSearch, currentUser }) {
         .search-btn:hover:not(:disabled) {
           transform: translateY(-1px);
           box-shadow: 0 6px 20px rgba(16,185,129,0.45) !important;
+        }
+
+        /* Seats selector */
+        .seats-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 10px 14px;
+          margin-bottom: 1.2rem;
+        }
+        .seats-label { font-size: 0.88rem; font-weight: 500; color: #6b7280; }
+        .seats-btns { display: flex; gap: 6px; }
+        .seat-btn {
+          width: 36px; height: 36px;
+          border: 2px solid #e5e7eb;
+          border-radius: 10px;
+          background: white;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.18s;
+        }
+        .seat-btn:hover { border-color: #10b981; color: #10b981; }
+        .seat-btn.active {
+          border-color: #10b981;
+          background: #10b981;
+          color: white;
         }
       `}</style>
     </div>
