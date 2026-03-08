@@ -215,15 +215,24 @@ function App() {
       body: JSON.stringify({ status: 'accepted' })
     });
     setIncomingRequest(null);
-    // Водитель переходит в чат с ID СВОЕЙ поездки (tripId = driver's trip_id)
-    // Это гарантирует что пассажир и водитель будут в одной WebSocket комнате
     const tripForChat = {
-      id: tripId, // ID поездки ВОДИТЕЛЯ — общая комната для обоих
+      id: tripId,
       user_id: requesterId,
       from: incomingRequest?.origin,
       to: incomingRequest?.destination,
       time: incomingRequest?.time,
-      user: { id: requesterId, name: incomingRequest?.requester_name, photo: incomingRequest?.requester_photo, trust_rating: incomingRequest?.requester_rating || 5.0 }
+      // Водитель видит данные пассажира
+      user: {
+        id: requesterId,
+        name: incomingRequest?.requester_name,
+        photo: incomingRequest?.requester_photo,
+        trust_rating: incomingRequest?.requester_rating || 5.0
+      },
+      // Свои данные машины (водитель уже знает свою машину)
+      myCarModel: currentUser?.car_model,
+      myCarPlate: currentUser?.car_plate,
+      myCarColor: currentUser?.car_color,
+      isDriver: true,
     };
     await handleConnect(tripForChat);
   };
@@ -238,10 +247,28 @@ function App() {
   };
 
   const handleConnect = async (trip) => {
-    // Обновляем статус поездки на 'matched'
     await api.updateTripStatus(trip.id, 'matched');
-
     setActiveTrip({ ...trip, participants: 2, date: 'Сегодня' });
+    setActiveTab('trip');
+    setUnreadCount(0);
+    showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
+  };
+
+  // При acceptе пассажир тоже получает данные машины водителя через requestInfo
+  const handleConnectPassenger = async (trip) => {
+    const { requestInfo } = trip;
+    await api.updateTripStatus(trip.id, 'matched');
+    setActiveTrip({
+      ...trip,
+      participants: 2,
+      date: 'Сегодня',
+      // Данные машины водителя
+      driverCarModel: requestInfo?.driver_car_model,
+      driverCarPlate: requestInfo?.driver_car_plate,
+      driverCarColor: requestInfo?.driver_car_color,
+      driverName: requestInfo?.driver_name,
+      driverPhoto: requestInfo?.driver_photo,
+    });
     setActiveTab('trip');
     setUnreadCount(0);
     showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
@@ -282,7 +309,7 @@ function App() {
           <Matches
             matches={matches}
             setMatches={setMatches}
-            onConnect={handleConnect}
+            onConnect={handleConnectPassenger}
             isLoading={isSearching}
             searchCriteria={searchCriteria}
             currentUser={currentUser}
