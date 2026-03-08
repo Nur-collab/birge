@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Car, Clock, Search, Navigation } from 'lucide-react';
+import { User, Car, Clock, Search, Navigation, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
@@ -24,7 +24,6 @@ export default function Dashboard({ onSearch, currentUser }) {
             { headers: { 'Accept-Language': 'ru' } }
           );
           const data = await res.json();
-          // Извлекаем название района/микрорайона для короткого отображения
           const addr = data.address;
           const location =
             addr.quarter ||
@@ -34,8 +33,8 @@ export default function Dashboard({ onSearch, currentUser }) {
             addr.road ||
             data.display_name?.split(',')[0];
           if (location) setFrom(location);
-        } catch (e) {
-          console.error('Nominatim error:', e);
+        } catch {
+          // ignore
         } finally {
           setGeoLoading(false);
         }
@@ -52,79 +51,101 @@ export default function Dashboard({ onSearch, currentUser }) {
 
   return (
     <div className="dashboard screen-content">
+      {/* Выбор роли */}
       <div className="role-selector glass-panel">
-        <button
-          className={`role-btn ${role === 'passenger' ? 'active' : ''}`}
-          onClick={() => setRole('passenger')}
-        >
-          <User size={20} />
-          <span>{t('matches.passenger')}</span>
-        </button>
-        <button
-          className={`role-btn driver ${role === 'driver' ? 'active' : ''}`}
-          onClick={() => setRole('driver')}
-        >
-          <Car size={20} />
-          <span>{t('matches.driver')}</span>
-        </button>
-      </div>
-      <div className="dashboard-map-container" style={{ marginBottom: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
-        <RealMap showUserOnly={true} height="150px" />
-      </div>
-
-      <form className="trip-form glass-panel" onSubmit={handleSubmit}>
-        <h3>{t('dash.where_to')}</h3>
-
-        <div className="input-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <AddressInput
-            value={from}
-            onChange={setFrom}
-            placeholder={`${t('search.from')}...`}
-            iconColor="#10b981"
-            name="from"
-          />
+        <p className="role-label">Я еду как</p>
+        <div className="role-btns">
           <button
             type="button"
-            onClick={handleGeolocate}
-            disabled={geoLoading}
-            title="Определить моё местоположение"
-            style={{
-              width: 44, height: 44, flexShrink: 0,
-              border: '1px solid #d1d5db',
-              borderRadius: 8, background: geoLoading ? '#f3f4f6' : 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: geoLoading ? 'wait' : 'pointer',
-              transition: 'all 0.2s',
-              color: geoLoading ? '#9ca3af' : 'var(--primary)',
-            }}
+            className={`role-card ${role === 'passenger' ? 'active' : ''}`}
+            onClick={() => setRole('passenger')}
           >
-            <Navigation size={18} style={{ animation: geoLoading ? 'spin 1s linear infinite' : 'none' }} />
+            <div className={`role-icon ${role === 'passenger' ? 'active-green' : ''}`}>
+              <User size={22} />
+            </div>
+            <span className="role-name">{t('matches.passenger')}</span>
+            <span className="role-desc">Ищу водителя</span>
+          </button>
+          <button
+            type="button"
+            className={`role-card driver ${role === 'driver' ? 'active driver-active' : ''}`}
+            onClick={() => setRole('driver')}
+          >
+            <div className={`role-icon ${role === 'driver' ? 'active-amber' : 'amber-idle'}`}>
+              <Car size={22} />
+            </div>
+            <span className="role-name">{t('matches.driver')}</span>
+            <span className="role-desc">Предлагаю места</span>
           </button>
         </div>
+      </div>
 
-        <div className="input-group">
-          <AddressInput
-            value={to}
-            onChange={setTo}
-            placeholder={`${t('search.to')}...`}
-            iconColor="#f44336"
-            name="to"
-          />
+      {/* Мини-карта */}
+      <div className="mini-map-wrap">
+        <RealMap showUserOnly={true} height="140px" />
+      </div>
+
+      {/* Форма поиска */}
+      <form className="trip-form glass-panel" onSubmit={handleSubmit}>
+        <h3 className="form-title">
+          {role === 'driver' ? '🚗 Куда едете?' : '🗺️ Ваш маршрут'}
+        </h3>
+
+        {/* Route block */}
+        <div className="route-block">
+          <div className="route-row">
+            <div className="dot green" />
+            <div className="route-field">
+              <AddressInput
+                value={from}
+                onChange={setFrom}
+                placeholder={`${t('search.from')}...`}
+                iconColor="#10b981"
+                name="from"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleGeolocate}
+              disabled={geoLoading}
+              title="Определить моё местоположение"
+              className="geo-btn"
+            >
+              <Navigation size={16} style={{ animation: geoLoading ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+          </div>
+          <div className="route-divider-line" />
+          <div className="route-row">
+            <div className="dot red" />
+            <div className="route-field">
+              <AddressInput
+                value={to}
+                onChange={setTo}
+                placeholder={`${t('search.to')}...`}
+                iconColor="#f43f5e"
+                name="to"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="input-group">
-          <Clock size={18} className="input-icon" />
+        {/* Время */}
+        <div className="time-row">
+          <Clock size={16} color="#10b981" />
+          <span className="time-label">Время отправления</span>
           <input
             type="time"
             value={time}
             onChange={e => setTime(e.target.value)}
             required
+            className="time-input"
           />
         </div>
 
         <button type="submit" className="primary-btn search-btn">
-          <Search size={20} />
-          <span>{role === 'driver' ? t('dash.find_ride') : t('dash.find_ride')}</span>
+          <Search size={18} />
+          <span>{role === 'driver' ? 'Найти пассажиров' : 'Найти водителя'}</span>
+          <ArrowRight size={16} style={{ marginLeft: 'auto' }} />
         </button>
       </form>
 
@@ -132,106 +153,146 @@ export default function Dashboard({ onSearch, currentUser }) {
         .dashboard {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
-          animation: fadeIn 0.4s ease-out;
+          gap: 1rem;
         }
-        .role-selector {
-          display: flex;
-          padding: 8px;
-          gap: 8px;
+
+        /* Role selector */
+        .role-selector { padding: 1rem; }
+        .role-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 10px;
         }
-        .role-btn {
+        .role-btns { display: flex; gap: 10px; }
+        .role-card {
           flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 1rem 0;
-          border: 2px solid transparent;
-          border-radius: calc(var(--radius) - 4px);
-          background: var(--light);
-          color: #6b7280;
-          font-weight: 600;
+          gap: 5px;
+          padding: 14px 8px;
+          border: 2px solid #e5e7eb;
+          border-radius: 14px;
+          background: #f9fafb;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.22s ease;
         }
-        .role-btn span {
-          font-size: 0.9rem;
-        }
-        .role-btn:hover {
-          background: #e5e7eb;
-        }
-        .role-btn.active {
-          background: var(--primary);
-          color: white;
-          border-color: var(--primary);
-          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        .role-card:hover { background: #f3f4f6; transform: translateY(-1px); }
+        .role-card.active {
+          border-color: #10b981;
+          background: #f0fdf4;
+          box-shadow: 0 4px 14px rgba(16,185,129,0.15);
           transform: translateY(-2px);
         }
-        .role-btn.driver.active {
-          background: var(--secondary);
-          border-color: var(--secondary);
-          box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+        .role-card.driver-active {
+          border-color: #f59e0b !important;
+          background: #fffbeb !important;
+          box-shadow: 0 4px 14px rgba(245,158,11,0.15) !important;
         }
-        .trip-form h3 {
-          margin-bottom: 1.2rem;
+        .role-icon {
+          width: 44px; height: 44px;
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          background: #e5e7eb; color: #6b7280;
+          transition: all 0.2s;
+        }
+        .role-icon.active-green { background: #10b981; color: white; }
+        .role-icon.active-amber { background: #f59e0b; color: white; }
+        .role-icon.amber-idle { background: #fef3c7; color: #f59e0b; }
+        .role-name { font-weight: 700; font-size: 0.88rem; color: #374151; }
+        .role-desc { font-size: 0.7rem; color: #9ca3af; }
+
+        /* Map */
+        .mini-map-wrap {
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: var(--shadow);
+        }
+
+        /* Form */
+        .trip-form { padding: 1.2rem; }
+        .form-title {
+          font-size: 1rem;
+          font-weight: 700;
           color: var(--dark);
-          text-align: center;
-        }
-        .input-group {
-          position: relative;
           margin-bottom: 1rem;
         }
-        .input-icon {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #9ca3af;
+
+        /* Route block */
+        .route-block {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          overflow: hidden;
+          margin-bottom: 1rem;
         }
-        .input-icon.from { color: var(--primary); }
-        .input-icon.to { color: #f44336; }
-        .input-group input {
-          width: 100%;
-          padding: 12px 12px 12px 40px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 1rem;
-          background: white;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-        .input-group input:focus {
-          border-color: var(--primary);
-        }
-        .primary-btn {
-          width: 100%;
-          background: var(--primary);
-          color: white;
-          border: none;
-          padding: 14px;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
+        .route-row {
           display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 4px 12px;
+        }
+        .dot {
+          width: 10px; height: 10px;
+          border-radius: 50%; flex-shrink: 0;
+        }
+        .dot.green { background: #10b981; }
+        .dot.red { background: #f43f5e; }
+        .route-field { flex: 1; }
+        .route-divider-line { height: 1px; background: #e5e7eb; margin: 0 12px; }
+        .geo-btn {
+          width: 32px; height: 32px; flex-shrink: 0;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          color: var(--primary);
+          transition: all 0.2s;
+        }
+        .geo-btn:hover:not(:disabled) { background: #f0fdf4; border-color: #10b981; }
+        .geo-btn:disabled { color: #9ca3af; cursor: wait; }
+
+        /* Time */
+        .time-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 10px 14px;
+          margin-bottom: 1.2rem;
+        }
+        .time-label { flex: 1; font-size: 0.85rem; font-weight: 500; color: #6b7280; }
+        .time-input {
+          border: none;
+          background: transparent;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--dark);
+          outline: none;
+          cursor: pointer;
+        }
+
+        .search-btn {
+          display: flex !important;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-top: 1.5rem;
-          transition: transform 0.1s, box-shadow 0.2s;
+          background: linear-gradient(135deg, #10b981, #059669) !important;
+          box-shadow: 0 4px 15px rgba(16,185,129,0.35) !important;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+          margin-top: 0;
         }
-        .primary-btn:active {
-          transform: scale(0.98);
-        }
-        .primary-btn.search-btn {
-          background: linear-gradient(135deg, var(--primary), var(--secondary));
-          box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        .search-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(16,185,129,0.45) !important;
         }
       `}</style>
     </div>
