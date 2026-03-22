@@ -24,7 +24,7 @@ const requestApi = {
   }
 };
 
-export default function Matches({ matches = [], setMatches, onConnect, isLoading = false, searchCriteria, currentUser, myTripId }) {
+export default function Matches({ matches = [], setMatches, onConnect, onCancel, isLoading = false, searchCriteria, currentUser, myTripId }) {
   const { t } = useTranslation();
   const [requestStatus, setRequestStatus] = useState({}); // { [tripId]: 'pending'|'accepted'|'declined' }
   const connectedRef = useRef(false); // защита от повторного вызова onConnect
@@ -97,7 +97,20 @@ export default function Matches({ matches = [], setMatches, onConnect, isLoading
   if (isLoading) {
     return (
       <div className="matches screen-content">
-        <h2 style={{ marginBottom: '1rem', color: 'var(--dark)' }}>{t('matches.searching')}</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ color: 'var(--dark)', margin: 0 }}>{t('matches.searching')}</h2>
+          <button
+            onClick={onCancel}
+            style={{
+              background: '#fee2e2', color: '#dc2626', border: 'none',
+              padding: '7px 14px', borderRadius: 10, fontWeight: 600,
+              fontSize: '0.82rem', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', gap: 5,
+            }}
+          >
+            ✕ Отмена
+          </button>
+        </div>
         <div className="matches-list"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
       </div>
     );
@@ -108,16 +121,38 @@ export default function Matches({ matches = [], setMatches, onConnect, isLoading
       <div className="matches screen-content glass-panel" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <Clock size={48} color="#9ca3af" style={{ margin: '0 auto 1rem auto' }} />
         <h3>{t('matches.empty')}</h3>
-        <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>Ищем попутчиков, подождите...</p>
+        <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Ищем попутчиков, подождите...</p>
+        <button
+          onClick={onCancel}
+          style={{
+            background: '#fee2e2', color: '#dc2626', border: 'none',
+            padding: '10px 24px', borderRadius: 12, fontWeight: 600,
+            fontSize: '0.9rem', cursor: 'pointer',
+          }}
+        >
+          ✕ Отменить поиск
+        </button>
       </div>
     );
   }
 
   return (
     <div className="matches screen-content">
-      <h2 style={{ marginBottom: '1rem', color: 'var(--dark)' }}>
-        {isDriver ? 'Запросы пассажиров' : 'Найденные водители'}
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2 style={{ color: 'var(--dark)', margin: 0 }}>
+          {isDriver ? 'Запросы пассажиров' : 'Найденные водители'}
+        </h2>
+        <button
+          onClick={onCancel}
+          style={{
+            background: '#fee2e2', color: '#dc2626', border: 'none',
+            padding: '7px 14px', borderRadius: 10, fontWeight: 600,
+            fontSize: '0.82rem', cursor: 'pointer',
+          }}
+        >
+          ✕ Отмень
+        </button>
+      </div>
 
       <div className="matches-list">
         {matches.map(trip => {

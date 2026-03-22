@@ -37,7 +37,7 @@ const BISHKEK_LOCATIONS = {
     'западный автовокзал': [42.8700, 74.5500],
 };
 
-function geocode(locationStr) {
+function geocodeOffline(locationStr) {
     if (!locationStr) return null;
     const lower = locationStr.toLowerCase().trim();
     for (const [key, coords] of Object.entries(BISHKEK_LOCATIONS)) {
@@ -51,6 +51,8 @@ export default function RealMap({ from, to, height = "250px", showUserOnly = fal
     const mapRef = useRef(null);
     const routeRef = useRef(null);
     const [userLocation, setUserLocation] = React.useState(null);
+    const [fromCoords, setFromCoords] = React.useState(geocodeOffline(from) || [42.8500, 74.5600]);
+    const [toCoords, setToCoords] = React.useState(geocodeOffline(to) || [42.8900, 74.6100]);
 
     React.useEffect(() => {
         if (navigator.geolocation) {
@@ -62,8 +64,34 @@ export default function RealMap({ from, to, height = "250px", showUserOnly = fal
         }
     }, []);
 
-    const fromCoords = geocode(from) || [42.8500, 74.5600];
-    const toCoords = geocode(to) || [42.8900, 74.6100];
+    // Реальное геокодирование через API Яндекса (если загрузился)
+    React.useEffect(() => {
+        if (!ymapsRef.current || showUserOnly) return;
+        
+        const geocodeAddress = async (address, setter, fallbackStr) => {
+            if (!address) return;
+            const offlineCoords = geocodeOffline(address);
+            if (offlineCoords) {
+                setter(offlineCoords);
+                return;
+            }
+            try {
+                // Добавляем "Бишкек ", чтобы геокодер искал именно в нашем городе
+                const res = await ymapsRef.current.geocode(`Бишкек, ${address}`, { results: 1 });
+                const firstGeoObject = res.geoObjects.get(0);
+                if (firstGeoObject) {
+                    setter(firstGeoObject.geometry.getCoordinates());
+                } else {
+                    setter(geocodeOffline(fallbackStr) || BISHKEK_CENTER);
+                }
+            } catch (e) {
+                console.warn('Geocoding error:', e);
+            }
+        };
+
+        geocodeAddress(from, setFromCoords, 'центр');
+        geocodeAddress(to, setToCoords, 'цум');
+    }, [from, to, showUserOnly]);
 
     // Вычисляем центр карты между двумя точками или центрируем на пользователе
     const centerLat = showUserOnly && userLocation ? userLocation[0] : (fromCoords[0] + toCoords[0]) / 2;
@@ -102,6 +130,12 @@ export default function RealMap({ from, to, height = "250px", showUserOnly = fal
             console.warn('MultiRoute not available, using polyline fallback', e);
         }
     };
+
+    // Обновляем маршрут, если изменились координаты
+    React.useEffect(() => {
+        if (!routeRef.current || showUserOnly) return;
+        routeRef.current.model.setReferencePoints([fromCoords, toCoords]);
+    }, [fromCoords, toCoords, showUserOnly]);
 
     return (
         <div style={{ height, width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', position: 'relative' }}>

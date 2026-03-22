@@ -112,6 +112,10 @@ function App() {
 
   const showNotification = (title, message) => {
     setNotification({ show: true, title, message });
+    // Нативное Push-уведомление если вкладка скрыта/свернута
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      new Notification(title, { body: message });
+    }
   };
 
   const handleTabChange = (tab) => {
@@ -206,6 +210,18 @@ function App() {
       setActiveTab('home');
       showNotification('Ошибка', error.message);
     }
+  };
+
+  const handleCancelSearch = async () => {
+    // Удаляем поездку из БД, чтобы не путала другим пользователям
+    if (myTripId) {
+      await api.cancelTrip(myTripId);
+    }
+    setMatches([]);
+    setIsSearching(false);
+    setMyTripId(null);
+    setSearchCriteria(null);
+    setActiveTab('home');
   };
 
   const handleAcceptRequest = async (requestId, tripId, requesterId, requesterTripId) => {
@@ -314,6 +330,7 @@ function App() {
             matches={matches}
             setMatches={setMatches}
             onConnect={handleConnectPassenger}
+            onCancel={handleCancelSearch}
             isLoading={isSearching}
             searchCriteria={searchCriteria}
             currentUser={currentUser}

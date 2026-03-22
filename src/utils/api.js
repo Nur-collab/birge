@@ -13,7 +13,10 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone }),
         });
-        if (!response.ok) throw new Error('Ошибка отправки кода');
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || 'Ошибка отправки кода');
+        }
         return await response.json();
     },
 
@@ -132,6 +135,17 @@ export const api = {
             });
         } catch (e) {
             console.error('updateTripStatus error:', e);
+        }
+    },
+
+    cancelTrip: async (tripId) => {
+        try {
+            await fetch(`${API_URL}/trips/${tripId}`, {
+                method: 'DELETE',
+                headers: { ...getAuthHeader() },
+            });
+        } catch (e) {
+            console.error('cancelTrip error:', e);
         }
     },
 

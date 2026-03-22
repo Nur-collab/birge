@@ -55,15 +55,24 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
           text: data.text,
           time: data.timestamp
         };
+
+        let isDuplicate = false;
         setMessages((prev) => {
-          // Дедупликация: не добавляем если id уже есть
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          // Уведомляем App о новом входящем сообщении от собеседника
-          if (data.sender_id !== currentUser.id && onNewMessage) {
-            onNewMessage();
+          if (prev.some(m => m.id === newMsg.id)) {
+            isDuplicate = true;
+            return prev;
           }
           return [...prev, newMsg];
         });
+
+        if (!isDuplicate && data.sender_id !== currentUser.id) {
+          if (onNewMessage) onNewMessage();
+
+          // Нативное Push-уведомление для чата если вкладка скрыта
+          if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+            new Notification(`Новое сообщение от ${newMsg.senderName}`, { body: newMsg.text });
+          }
+        }
       };
 
       socket.onclose = () => {

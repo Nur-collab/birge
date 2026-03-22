@@ -7,6 +7,48 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
   const { t } = useTranslation();
   const [user, setUser] = useState(userProp || null);
   const [error, setError] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  // Используем публичный ImgBB ключ для тестов (без регистрации)
+  const IMGBB_API_KEY = '0a4da4d3f56ce2658fd6fbebc8e727e7';
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // 1. Загружаем на ImgBB
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const newPhotoUrl = data.data.url;
+        // 2. Обновляем в нашей БД
+        const updatedUser = await api.updateProfile({ photo: newPhotoUrl });
+        setUser(updatedUser);
+
+        // Показываем уведомление через браузер если возможно
+        if (Notification.permission === 'granted') {
+          new Notification('Birge', { body: 'Фото профиля обновлено!' });
+        }
+      } else {
+        alert('Ошибка загрузки фото: ' + data.error?.message);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Ошибка при загрузке картинки');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (userProp) {
@@ -48,13 +90,31 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
   return (
     <div className="profile screen-content">
       <div className="profile-header glass-panel">
-        <div className="avatar-container">
-          <img src={user.photo} alt={user.name} className="profile-avatar" />
+        <div className="avatar-container" onClick={() => fileInputRef.current?.click()}>
+          {uploading ? (
+            <div className="avatar-loader">
+              <Loader size={24} color="white" className="spin-loader" />
+            </div>
+          ) : (
+            <>
+              <img src={user.photo} alt={user.name} className="profile-avatar" />
+              <div className="avatar-overlay">
+                <span style={{ color: 'white', fontSize: '10px', fontWeight: 'bold' }}>ИЗМЕНИТЬ</span>
+              </div>
+            </>
+          )}
           {user.is_verified && (
             <div className="verified-badge" title="Верифицированный пользователь">
               <ShieldCheck size={16} color="white" />
             </div>
           )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handlePhotoUpload}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
         </div>
 
         <h2>{user.name}</h2>
@@ -157,6 +217,10 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           width: 90px;
           height: 90px;
           margin: 0 auto 1rem auto;
+          cursor: pointer;
+          border-radius: 50%;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .profile-avatar {
           width: 100%;
@@ -164,7 +228,23 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           border-radius: 50%;
           object-fit: cover;
           border: 3px solid white;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .avatar-overlay {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          height: 30%;
+          background: rgba(0,0,0,0.5);
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0; transition: opacity 0.2s;
+        }
+        .avatar-container:hover .avatar-overlay {
+          opacity: 1;
+        }
+        .avatar-loader {
+          position: absolute; top:0; left:0; right:0; bottom:0;
+          background: rgba(16,185,129,0.8);
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 50%;
         }
         .verified-badge {
           position: absolute;
@@ -178,6 +258,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           align-items: center;
           justify-content: center;
           border: 2px solid white;
+          z-index: 2;
         }
         .user-phone {
           color: #6b7280;
