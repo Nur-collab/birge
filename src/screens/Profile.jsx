@@ -157,6 +157,68 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         <p className="limits-hint">{t('profile.trips_hint')}</p>
       </div>
 
+      {/* Карточка машины водителя */}
+      <div className="car-card glass-panel" onClick={onShowSettings} style={{ cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: user.car_model ? '1rem' : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.95rem', color: '#1f2937' }}>
+            <Car size={18} color={user.car_model ? '#f59e0b' : '#9ca3af'} />
+            Моя машина
+          </div>
+          {!user.car_model && (
+            <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>+ Добавить →</span>
+          )}
+        </div>
+
+        {user.car_model ? (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Иконка машины */}
+            <div style={{
+              width: 56, height: 56, borderRadius: 14,
+              background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.8rem', flexShrink: 0,
+            }}>🚗</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1f2937' }}>{user.car_model}</div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                {user.car_color && (
+                  <span style={{
+                    background: '#f0fdf4', color: '#059669',
+                    padding: '3px 10px', borderRadius: 20,
+                    fontSize: '0.78rem', fontWeight: 600,
+                    border: '1px solid #d1fae5',
+                  }}>
+                    {user.car_color}
+                  </span>
+                )}
+                {user.car_plate && (
+                  <span style={{
+                    background: '#1f2937', color: 'white',
+                    padding: '3px 12px', borderRadius: 6,
+                    fontSize: '0.82rem', fontWeight: 700,
+                    letterSpacing: '1px', fontFamily: 'monospace',
+                  }}>
+                    {user.car_plate.toUpperCase()}
+                  </span>
+                )}
+              </div>
+            </div>
+            <ChevronRight size={18} color="#9ca3af" style={{ alignSelf: 'center' }} />
+          </div>
+        ) : (
+          <div style={{
+            marginTop: '10px', padding: '14px', borderRadius: 12,
+            background: '#fffbeb', border: '1.5px dashed #fcd34d',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🚗</div>
+            <p style={{ fontSize: '0.85rem', color: '#92400e', fontWeight: 500, margin: 0 }}>
+              Добавьте данные машины — пассажиры увидят их перед поездкой
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="reviews-section">
         <h3>{t('profile.reviews_title')}</h3>
         {(user.reviews || []).length === 0 ? (
@@ -369,6 +431,14 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           color: #4b5563;
           font-style: italic;
           line-height: 1.4;
+        }
+        .car-card {
+          padding: 1.2rem;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .car-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
         .settings-menu {
           display: flex;

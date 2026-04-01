@@ -363,7 +363,7 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <Dashboard onSearch={handleSearch} />;
+        return <Dashboard onSearch={handleSearch} currentUser={currentUser} onShowSettings={() => setActiveTab('settings')} />;
       case 'matches':
         return (
           <Matches

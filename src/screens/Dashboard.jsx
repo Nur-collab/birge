@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
 
-export default function Dashboard({ onSearch, currentUser }) {
+export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const { t } = useTranslation();
   const [role, setRole] = useState('passenger');
   const [from, setFrom] = useState('Жилмассив Ала-Арча');
@@ -80,6 +80,32 @@ export default function Dashboard({ onSearch, currentUser }) {
           </button>
         </div>
       </div>
+
+      {/* Предупреждение: водитель без данных машины */}
+      {role === 'driver' && currentUser && !currentUser.car_model && (
+        <div
+          onClick={onShowSettings}
+          style={{
+            background: '#fffbeb',
+            border: '1.5px solid #fcd34d',
+            borderRadius: 14,
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'}
+          onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}
+        >
+          <span style={{ fontSize: '1.5rem' }}>🚗</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>Данные машины не заполнены</div>
+            <div style={{ fontSize: '0.78rem', color: '#b45309', marginTop: 2 }}>Пассажиры не увидят вашу машину. Нажмите чтобы заполнить →</div>
+          </div>
+        </div>
+      )}
 
       {/* Мини-карта */}
       <div className="mini-map-wrap">
