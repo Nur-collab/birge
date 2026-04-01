@@ -43,6 +43,8 @@ function App() {
   const [searchCriteria, setSearchCriteria] = useState(null);
   const [myTripId, setMyTripId] = useState(null); // ID поездки текущего пользователя
   const [incomingRequest, setIncomingRequest] = useState(null); // для водителя
+  const [pendingRequestCount, setPendingRequestCount] = useState(0); // badge для водителя
+  const seenRequestIds = React.useRef(new Set()); // чтобы не показывать один и тот же запрос дважды
 
   // Обёртка setActiveTrip — автоматически пишет/очищает localStorage
   const setActiveTrip = useCallback((trip) => {
@@ -77,23 +79,57 @@ function App() {
     tryLoad();
   }, [isLoggedIn]);
 
-  // Polling входящих запросов для ВОДИТЕЛЯ каждые 5 секунд
-  // Работает ТОЛЬКО если есть активная поездка (myTripId или activeTrip)
+  // Polling входящих запросов для ВОДИТЕЛЯ каждые 4 секунды
+  // Работает если есть myTripId (водитель в поиске) или activeTrip (уже в поездке)
   useEffect(() => {
     if (!currentUser || (!myTripId && !activeTrip)) return;
+
+    const playNotificationSound = () => {
+      try {
+        // Простой beep через Web Audio API
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (_) { }
+      // Вибрация на мобильных
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    };
+
     const poll = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` }
         });
         const requests = await res.json();
-        if (requests.length > 0 && !incomingRequest) {
-          setIncomingRequest(requests[0]);
+        setPendingRequestCount(requests.length);
+
+        // Показываем модал только для НОВЫХ запросов (не виденных раньше)
+        const newReq = requests.find(r => !seenRequestIds.current.has(r.id));
+        if (newReq) {
+          seenRequestIds.current.add(newReq.id);
+          setIncomingRequest(newReq);
+          playNotificationSound();
+          // Нативный push если приложение свёрнуто
+          if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+            new Notification('🙋 Новый запрос на поездку!', {
+              body: `${newReq.requester_name} хочет присоединиться`,
+              icon: '/pwa-192x192.png',
+            });
+          }
         }
       } catch (e) { }
-    }, 5000);
+    }, 4000);
+
     return () => clearInterval(poll);
-  }, [currentUser, myTripId, activeTrip, incomingRequest]);
+  }, [currentUser, myTripId, activeTrip]);
 
   const handleLoggedIn = () => setIsLoggedIn(true);
 
@@ -225,16 +261,19 @@ function App() {
   };
 
   const handleAcceptRequest = async (requestId, tripId, requesterId, requesterTripId) => {
+    const acceptedReq = incomingRequest; // сохраняем до сброса
+    setIncomingRequest(null);
+    setPendingRequestCount(prev => Math.max(0, prev - 1));
+
     await fetch(`${API_URL}/trip-requests/${requestId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
       body: JSON.stringify({ status: 'accepted' })
     });
-    setIncomingRequest(null);
 
     // Если водитель уже в поездке — просто приняли запрос, polling обновит список
     if (activeTrip) {
-      showNotification('Пассажир принят! 👋', `${incomingRequest?.requester_name} едет с вами`);
+      showNotification('Пассажир принят! 👋', `${acceptedReq?.requester_name} едет с вами`);
       return;
     }
 
@@ -242,28 +281,29 @@ function App() {
     const tripForDriver = {
       id: tripId,         // ID поездки водителя = комната чата для всех
       user_id: requesterId,
-      from: incomingRequest?.origin,
-      to: incomingRequest?.destination,
-      time: incomingRequest?.time,
+      from: acceptedReq?.origin,
+      to: acceptedReq?.destination,
+      time: acceptedReq?.time,
       isDriver: true,
-      seats: incomingRequest?.seats || 3,
+      seats: acceptedReq?.seats || 3,
       user: {
         id: requesterId,
-        name: incomingRequest?.requester_name,
-        photo: incomingRequest?.requester_photo,
-        trust_rating: incomingRequest?.requester_rating || 5.0,
+        name: acceptedReq?.requester_name,
+        photo: acceptedReq?.requester_photo,
+        trust_rating: acceptedReq?.requester_rating || 5.0,
       },
     };
     await handleConnect(tripForDriver);
   };
 
   const handleDeclineRequest = async (requestId) => {
+    setIncomingRequest(null);
+    setPendingRequestCount(prev => Math.max(0, prev - 1));
     await fetch(`${API_URL}/trip-requests/${requestId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
       body: JSON.stringify({ status: 'declined' })
     });
-    setIncomingRequest(null);
   };
 
   const handleConnect = async (trip) => {
@@ -420,7 +460,9 @@ function App() {
         </button>
         <button className={`nav-item ${activeTab === 'matches' ? 'active' : ''}`} onClick={() => handleTabChange('matches')}>
           <Users size={24} />
-          {matches.length > 0 && <span className="badge">{matches.length}</span>}
+          {/* Для пассажира — кол-во найденных водителей; для водителя — входящие запросы */}
+          {pendingRequestCount > 0 && <span className="badge incoming-badge">{pendingRequestCount}</span>}
+          {pendingRequestCount === 0 && matches.length > 0 && <span className="badge">{matches.length}</span>}
           <span>{t('matches.title')}</span>
         </button>
         <button className={`nav-item ${activeTab === 'trip' ? 'active' : ''}`} onClick={() => handleTabChange('trip')}>
@@ -461,6 +503,14 @@ function App() {
         }
         .badge.dot {
           width: 10px; height: 10px; min-width: unset; right: 14px; padding: 0;
+        }
+        .badge.incoming-badge {
+          background: #f59e0b;
+          animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-badge {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.25); }
         }
       `}</style>
       {/* Модал входящего запроса для водителя */}
