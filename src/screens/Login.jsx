@@ -21,7 +21,7 @@ function PhoneStep({ onNext }) {
     try {
       const cleanPhone = '+996 ' + phone.replace(/\D/g, '').slice(-9);
       const result = await api.sendCode(cleanPhone);
-      onNext(cleanPhone, result.dev_code);
+      onNext(cleanPhone, result.tg_linked === true);
     } catch {
       setError(t('auth.error_generic'));
     } finally {
@@ -69,13 +69,15 @@ function PhoneStep({ onNext }) {
   );
 }
 
-// Шаг 2: Ввод SMS кода
-function CodeStep({ phone, devCode, onBack, onVerified }) {
+// Шаг 2: Ввод кода (через Telegram)
+function CodeStep({ phone, tgLinked, onBack, onVerified }) {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const BOT_NAME = import.meta.env.VITE_TELEGRAM_BOT || 'BirgeAuthBot';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,13 +100,26 @@ function CodeStep({ phone, devCode, onBack, onVerified }) {
         <Shield size={28} color="white" />
       </div>
       <h2 className="login-step-title">{t('auth.sms_code')}</h2>
-      <p className="login-step-desc">
-        {phone}
-      </p>
+      <p className="login-step-desc">{phone}</p>
 
-      {devCode && (
-        <div className="dev-badge">
-          🔑 {t('auth.check_sms')}
+      {tgLinked ? (
+        <div className="tg-badge tg-linked">
+          ✅ Код отправлен в Telegram
+        </div>
+      ) : (
+        <div className="tg-badge tg-hint">
+          <p>📲 Чтобы получить код, откройте бота:</p>
+          <a
+            href={`https://t.me/${BOT_NAME}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tg-link"
+          >
+            @{BOT_NAME}
+          </a>
+          <p style={{ fontSize: '0.75rem', marginTop: '4px', color: '#6b7280' }}>
+            Напишите боту ваш номер: <strong>996{phone.replace(/\D/g, '').slice(-9)}</strong>
+          </p>
         </div>
       )}
 
@@ -146,7 +161,7 @@ export default function Login({ onLoggedIn }) {
   const { t } = useTranslation();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
-  const [devCode, setDevCode] = useState('');
+  const [tgLinked, setTgLinked] = useState(false);
 
   return (
     <div className="login-screen">
@@ -174,16 +189,16 @@ export default function Login({ onLoggedIn }) {
         {/* Контент шага */}
         {step === 'phone' ? (
           <PhoneStep
-            onNext={(ph, code) => {
+            onNext={(ph, linked) => {
               setPhone(ph);
-              setDevCode(code);
+              setTgLinked(linked);
               setStep('code');
             }}
           />
         ) : (
           <CodeStep
             phone={phone}
-            devCode={devCode}
+            tgLinked={tgLinked}
             onBack={() => setStep('phone')}
             onVerified={onLoggedIn}
           />
@@ -475,6 +490,36 @@ export default function Login({ onLoggedIn }) {
           position: relative;
         }
         .login-footer a { color: #22c55e; text-decoration: none; }
+
+        .tg-badge {
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 0.83rem;
+          width: 100%;
+          box-sizing: border-box;
+          text-align: center;
+          line-height: 1.5;
+        }
+        .tg-linked {
+          background: #f0fdf4;
+          border: 1px solid #86efac;
+          color: #166534;
+          font-weight: 600;
+        }
+        .tg-hint {
+          background: #eff6ff;
+          border: 1px dashed #93c5fd;
+          color: #1e3a5f;
+        }
+        .tg-link {
+          display: inline-block;
+          margin-top: 4px;
+          font-weight: 700;
+          font-size: 1rem;
+          color: #2563eb;
+          text-decoration: none;
+        }
+        .tg-link:hover { text-decoration: underline; }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 0.8s linear infinite; }

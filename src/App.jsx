@@ -78,9 +78,9 @@ function App() {
   }, [isLoggedIn]);
 
   // Polling входящих запросов для ВОДИТЕЛЯ каждые 5 секунд
-  // Работает всегда пока пользователь залогинен (не только во время поиска)
+  // Работает ТОЛЬКО если есть активная поездка (myTripId или activeTrip)
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || (!myTripId && !activeTrip)) return;
     const poll = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
@@ -93,7 +93,7 @@ function App() {
       } catch (e) { }
     }, 5000);
     return () => clearInterval(poll);
-  }, [currentUser, incomingRequest]);
+  }, [currentUser, myTripId, activeTrip, incomingRequest]);
 
   const handleLoggedIn = () => setIsLoggedIn(true);
 

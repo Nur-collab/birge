@@ -56,29 +56,56 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
     return () => clearInterval(pollInterval);
   }, [isLoading, searchCriteria, currentUser, setMatches]);
 
-  // Для пассажира: polling статуса запросов
+  // Для пассажира: SSE (мгновенные уведомления) + fallback polling каждые 15 сек
   useEffect(() => {
     if (!currentUser || searchCriteria?.role !== 'passenger' || matches.length === 0) return;
-    connectedRef.current = false; // сброс при смене поисковых данных
+    connectedRef.current = false;
+
+    const handleStatusUpdate = (st) => {
+      if (!st?.status || st.status === 'not_sent') return;
+      setRequestStatus(prev => ({ ...prev, [st.trip_id]: st.status }));
+      if (st.status === 'accepted' && !connectedRef.current) {
+        connectedRef.current = true;
+        const matchedTrip = matches.find(m => m.id === st.trip_id) || matches[0];
+        const chatTripId = st.trip_id || matchedTrip.id;
+        onConnect({ ...matchedTrip, id: chatTripId, requestInfo: st });
+      }
+    };
+
+    // --- SSE: мгновенное уведомление от бэкенда ---
+    let es = null;
+    const token = localStorage.getItem('birge_token');
+    if (token && typeof EventSource !== 'undefined') {
+      // EventSource не поддерживает кастомные заголовки — передаём токен через ?token=
+      es = new EventSource(`${API_URL}/trip-requests/events/${currentUser.id}?token=${encodeURIComponent(token)}`);
+
+      es.addEventListener('request_update', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handleStatusUpdate(data);
+        } catch (_) { }
+      });
+
+      es.onerror = () => {
+        // SSE недоступен или соединение разорвано — fallback polling подхватит
+      };
+    }
+
+    // --- Fallback polling: каждые 15 сек (резервный вариант если SSE не работает) ---
     const pollReqStatus = setInterval(async () => {
+      if (connectedRef.current) return; // уже подключились через SSE
       for (const trip of matches) {
         try {
           const st = await requestApi.checkStatus(currentUser.id, trip.id);
-          if (st.status && st.status !== 'not_sent') {
-            setRequestStatus(prev => ({ ...prev, [trip.id]: st.status }));
-            // Если принят — переходим в чат ТОЛЬКО ОДИН РАЗ
-            if (st.status === 'accepted' && !connectedRef.current) {
-              connectedRef.current = true;
-              clearInterval(pollReqStatus);
-              // Используем trip_id из ответа, чтобы гарантировать совпадение с водителем
-              const chatTripId = st.trip_id || trip.id;
-              onConnect({ ...trip, id: chatTripId, requestInfo: st });
-            }
-          }
+          handleStatusUpdate(st);
         } catch (e) { }
       }
-    }, 5000);
-    return () => clearInterval(pollReqStatus);
+    }, 15000);
+
+    return () => {
+      es?.close();
+      clearInterval(pollReqStatus);
+    };
   }, [currentUser, matches, searchCriteria]);
 
   const handleSendRequest = async (trip) => {
@@ -150,7 +177,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
             fontSize: '0.82rem', cursor: 'pointer',
           }}
         >
-          ✕ Отмень
+          ✕ Отменить
         </button>
       </div>
 
