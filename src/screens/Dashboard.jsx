@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Car, Clock, Search, Navigation, ArrowRight } from 'lucide-react';
+import { User, Car, Clock, Search, Navigation, ArrowRight, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
@@ -10,8 +10,19 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [from, setFrom] = useState('Жилмассив Ала-Арча');
   const [to, setTo] = useState('ЦУМ (Центр)');
   const [time, setTime] = useState('08:15');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [seats, setSeats] = useState(3);
   const [geoLoading, setGeoLoading] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+  const formatDateLabel = (d) => {
+    if (d === today) return 'Сегодня';
+    if (d === tomorrow) return 'Завтра';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) return;
@@ -47,7 +58,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch({ role, from, to, time, seats: role === 'driver' ? seats : 1 });
+    onSearch({ role, from, to, time, date, seats: role === 'driver' ? seats : 1 });
   };
 
   return (
@@ -156,17 +167,33 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           </div>
         </div>
 
-        {/* Время */}
-        <div className="time-row">
-          <Clock size={16} color="#10b981" />
-          <span className="time-label">Время отправления</span>
-          <input
-            type="time"
-            value={time}
-            onChange={e => setTime(e.target.value)}
-            required
-            className="time-input"
-          />
+        {/* Дата + Время */}
+        <div className="datetime-block">
+          <div className="time-row" style={{ marginBottom: 0, borderRadius: '10px 10px 0 0', borderBottom: '1px solid #e5e7eb' }}>
+            <Calendar size={16} color="#6366f1" />
+            <span className="time-label">Дата поездки</span>
+            <div className="date-picker-wrap">
+              <span className="date-label-text">{formatDateLabel(date)}</span>
+              <input
+                type="date"
+                value={date}
+                min={today}
+                onChange={e => setDate(e.target.value)}
+                className="date-input-hidden"
+              />
+            </div>
+          </div>
+          <div className="time-row" style={{ borderRadius: '0 0 10px 10px', marginBottom: 0 }}>
+            <Clock size={16} color="#10b981" />
+            <span className="time-label">Время отправления</span>
+            <input
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+              required
+              className="time-input"
+            />
+          </div>
         </div>
 
         {/* Количество мест (только для водителя) */}
@@ -302,16 +329,20 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
         .geo-btn:hover:not(:disabled) { background: #f0fdf4; border-color: #10b981; }
         .geo-btn:disabled { color: #9ca3af; cursor: wait; }
 
-        /* Time */
+        /* DateTime */
+        .datetime-block {
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          overflow: hidden;
+          margin-bottom: 1.2rem;
+        }
         .time-row {
           display: flex;
           align-items: center;
           gap: 8px;
           background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
           padding: 10px 14px;
-          margin-bottom: 1.2rem;
+          border: none;
         }
         .time-label { flex: 1; font-size: 0.85rem; font-weight: 500; color: #6b7280; }
         .time-input {
@@ -322,6 +353,31 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           color: var(--dark);
           outline: none;
           cursor: pointer;
+        }
+        .date-picker-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .date-label-text {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #6366f1;
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 6px;
+          transition: background 0.15s;
+        }
+        .date-label-text:hover { background: #ede9fe; }
+        .date-input-hidden {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          cursor: pointer;
+          top: 0; left: 0;
+          border: none;
+          background: none;
         }
 
         .search-btn {

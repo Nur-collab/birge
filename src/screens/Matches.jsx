@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Star, CheckCircle, Clock, Car, Send, Loader } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { Star, CheckCircle, Clock, Car, Send, Loader, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SkeletonCard from '../components/SkeletonCard';
 import { api } from '../utils/api';
@@ -24,23 +24,60 @@ const requestApi = {
   }
 };
 
+const today = new Date().toISOString().slice(0, 10);
+const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+const formatChipLabel = (d) => {
+  if (!d) return 'Без даты';
+  if (d === today) return '📅 Сегодня';
+  if (d === tomorrow) return '📅 Завтра';
+  const dt = new Date(d);
+  return '📅 ' + dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+};
+
 export default function Matches({ matches = [], setMatches, onConnect, onCancel, isLoading = false, searchCriteria, currentUser, myTripId }) {
   const { t } = useTranslation();
   const [requestStatus, setRequestStatus] = useState({}); // { [tripId]: 'pending'|'accepted'|'declined' }
   const connectedRef = useRef(false); // защита от повторного вызова onConnect
+  const [activeDateFilter, setActiveDateFilter] = useState(searchCriteria?.date || null);
+
+  // Синхронизируем фильтр при смене критериев поиска
+  useEffect(() => {
+    setActiveDateFilter(searchCriteria?.date || null);
+  }, [searchCriteria?.date]);
+
+  // Уникальные даты из матчей для чипсов
+  const uniqueDates = useMemo(() => {
+    const dates = [...new Set(matches.map(m => m.date || null))];
+    return dates.sort((a, b) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b);
+    });
+  }, [matches]);
+
+  // Отфильтрованные матчи
+  const filteredMatches = useMemo(() => {
+    if (!activeDateFilter) return matches;
+    return matches.filter(m => m.date === activeDateFilter || (!m.date && activeDateFilter === null));
+  }, [matches, activeDateFilter]);
 
   // Автополлинг за совпадениями
   useEffect(() => {
     if (isLoading || !searchCriteria || !currentUser) return;
     const pollInterval = setInterval(async () => {
       try {
-        const found = await api.findMatches(currentUser.id, searchCriteria.role, searchCriteria.from, searchCriteria.to, searchCriteria.time);
+        const found = await api.findMatches(
+          currentUser.id, searchCriteria.role, searchCriteria.from,
+          searchCriteria.to, searchCriteria.time, 1, searchCriteria.date || null
+        );
         if (found.length > 0) {
           const mapped = found.map(m => ({
             id: m.id, role: m.role,
             from: m.origin, to: m.destination,
             origin: m.origin, destination: m.destination,
-            time: m.time, userId: m.user_id, user_id: m.user_id,
+            time: m.time, date: m.date || null,
+            userId: m.user_id, user_id: m.user_id,
             user: {
               id: m.user?.id, name: m.user?.name || 'Пользователь',
               photo: m.user?.photo || `https://i.pravatar.cc/150?u=${m.user_id}`,
@@ -165,7 +202,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
   return (
     <div className="matches screen-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <h2 style={{ color: 'var(--dark)', margin: 0 }}>
           {isDriver ? 'Запросы пассажиров' : 'Найденные водители'}
         </h2>
@@ -181,8 +218,29 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
         </button>
       </div>
 
+      {/* Фильтр-чипсы по дате */}
+      {uniqueDates.length > 1 && (
+        <div className="date-chips-row">
+          <button
+            className={`date-chip ${activeDateFilter === null ? 'active' : ''}`}
+            onClick={() => setActiveDateFilter(null)}
+          >
+            Все
+          </button>
+          {uniqueDates.map(d => (
+            <button
+              key={d || 'null'}
+              className={`date-chip ${activeDateFilter === d ? 'active' : ''}`}
+              onClick={() => setActiveDateFilter(d)}
+            >
+              {formatChipLabel(d)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="matches-list">
-        {matches.map(trip => {
+        {filteredMatches.map(trip => {
           const status = requestStatus[trip.id];
           return (
             <div key={trip.id} className="match-card glass-panel">
@@ -204,7 +262,15 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                     </div>
                   )}
                 </div>
-                <div className="match-time glass-badge">{trip.time}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <div className="match-time glass-badge">{trip.time}</div>
+                  {trip.date && (
+                    <div className="date-badge">
+                      <Calendar size={10} />
+                      {formatChipLabel(trip.date).replace('📅 ', '')}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Маршрут */}
@@ -216,7 +282,6 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
               {/* Кнопка — разная в зависимости от роли */}
               {isDriver ? (
-                // Водитель видит совпавшего пассажира, но принять запрос можно только через модал
                 <div style={{
                   textAlign: 'center', padding: '10px',
                   background: '#f0fdf4', borderRadius: '10px',
@@ -225,7 +290,6 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                   ✅ Совпадение найдено! Дождитесь запроса от пассажира — появится всплывающее окно.
                 </div>
               ) : (
-                // Пассажир отправляет запрос водителю
                 <button
                   className="primary-btn match-btn"
                   onClick={() => status ? null : handleSendRequest(trip)}
@@ -268,6 +332,42 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
         .route-divider { height: 12px; width: 2px; background: #e5e7eb; margin: 4px 0 4px 6px; }
         .match-btn { margin-top: 0; padding: 10px; width: 100%; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Date chips */
+        .date-chips-row {
+          display: flex; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 1rem; overflow-x: auto;
+          scrollbar-width: none; padding-bottom: 2px;
+        }
+        .date-chips-row::-webkit-scrollbar { display: none; }
+        .date-chip {
+          flex-shrink: 0;
+          padding: 6px 14px;
+          border-radius: 20px;
+          border: 1.5px solid #e5e7eb;
+          background: white;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.18s;
+          white-space: nowrap;
+        }
+        .date-chip:hover { border-color: #6366f1; color: #6366f1; }
+        .date-chip.active {
+          background: #6366f1;
+          border-color: #6366f1;
+          color: white;
+          box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+        }
+
+        /* Date badge on card */
+        .date-badge {
+          display: flex; align-items: center; gap: 3px;
+          font-size: 0.7rem; font-weight: 600;
+          color: #6366f1; background: #ede9fe;
+          padding: 2px 8px; border-radius: 10px;
+        }
       `}</style>
     </div>
   );

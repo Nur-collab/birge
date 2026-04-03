@@ -187,6 +187,7 @@ function App() {
         origin: tripData.from,
         destination: tripData.to,
         time: tripData.time,
+        date: tripData.date || null,
         user_id: currentUser.id
       };
 
@@ -209,17 +210,20 @@ function App() {
           tripData.role,
           tripData.from,
           tripData.to,
-          tripData.time
+          tripData.time,
+          tripData.seats,
+          tripData.date || null
         );
 
         const mappedMatches = foundMatches.map(m => ({
-          id: m.id,           // DB id поездки — используется как chatRoomId
+          id: m.id,
           role: m.role,
           from: m.origin,
           to: m.destination,
           origin: m.origin,
           destination: m.destination,
           time: m.time,
+          date: m.date || null,
           userId: m.user_id,
           user_id: m.user_id,
           user: {
@@ -228,6 +232,7 @@ function App() {
             photo: m.user?.photo || `https://i.pravatar.cc/150?u=${m.user_id}`,
             trust_rating: m.user?.trust_rating || 5.0,
             is_verified: m.user?.is_verified || false,
+            car_model: m.user?.car_model || null,
           }
         }));
 
@@ -308,7 +313,7 @@ function App() {
 
   const handleConnect = async (trip) => {
     await api.updateTripStatus(trip.id, 'matched');
-    setActiveTrip({ ...trip, participants: 2, date: 'Сегодня' });
+    setActiveTrip({ ...trip, participants: 2, date: trip.date || 'Сегодня' });
     setActiveTab('trip');
     setUnreadCount(0);
     showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
@@ -321,8 +326,7 @@ function App() {
     setActiveTrip({
       ...trip,
       participants: 2,
-      date: 'Сегодня',
-      // Данные машины водителя
+      date: trip.date || 'Сегодня',
       driverCarModel: requestInfo?.driver_car_model,
       driverCarPlate: requestInfo?.driver_car_plate,
       driverCarColor: requestInfo?.driver_car_color,

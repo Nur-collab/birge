@@ -86,9 +86,10 @@ export const api = {
         return await response.json();
     },
 
-    findMatches: async (userId, role, origin, destination, time, seats = 1) => {
+    findMatches: async (userId, role, origin, destination, time, seats = 1, date = null) => {
         try {
             const params = new URLSearchParams({ user_id: userId, role, origin, destination, time });
+            if (date) params.append('date', date);
             const response = await fetch(`${API_URL}/trips/matches?${params}`, {
                 headers: { ...getAuthHeader() }
             });
