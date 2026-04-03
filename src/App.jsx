@@ -312,7 +312,10 @@ function App() {
   };
 
   const handleConnect = async (trip) => {
-    await api.updateTripStatus(trip.id, 'matched');
+    const today = new Date().toISOString().slice(0, 10);
+    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : today;
+    const isScheduled = tripDate > today;
+    await api.updateTripStatus(trip.id, isScheduled ? 'scheduled' : 'matched');
     setActiveTrip({ ...trip, participants: 2, date: trip.date || 'Сегодня' });
     setActiveTab('trip');
     setUnreadCount(0);
@@ -322,7 +325,10 @@ function App() {
   // При acceptе пассажир тоже получает данные машины водителя через requestInfo
   const handleConnectPassenger = async (trip) => {
     const { requestInfo } = trip;
-    await api.updateTripStatus(trip.id, 'matched');
+    const today = new Date().toISOString().slice(0, 10);
+    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : today;
+    const isScheduled = tripDate > today;
+    await api.updateTripStatus(trip.id, isScheduled ? 'scheduled' : 'matched');
     setActiveTrip({
       ...trip,
       participants: 2,

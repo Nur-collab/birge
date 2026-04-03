@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck, Car, Zap, Users } from 'lucide-react';
+import { AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck, Car, Zap, Users, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import Chat from '../components/Chat';
@@ -12,14 +12,20 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const [passengers, setPassengers] = useState([]);
   const [seats, setSeats] = useState(trip?.seats || 3);
 
-  // Данные: isDriver из trip.isDriver
+  // Определяем: поездка запланирована (дата в будущем)?
+  const today = new Date().toISOString().slice(0, 10);
+  const tripDate = trip?.date && trip.date !== 'Сегодня' ? trip.date : today;
+  const isScheduled = tripDate > today;
+
+  // Данные: isDriver из trip.isDriver — определяется ДО useState с проверкой
   const isDriver = trip?.isDriver || false;
+  const tripId = trip?.id;
 
   // Для пассажира: показываем карточку "Поездка принята" при первом входе
   // Ключ хранится в sessionStorage чтобы не показывать повторно при переключении вкладок
   const [showAcceptedCard, setShowAcceptedCard] = useState(() => {
-    if (isDriver) return false;
-    const key = `birge_trip_card_shown_${trip?.id}`;
+    if (isDriver || !tripId) return false;
+    const key = `birge_trip_card_shown_${tripId}`;
     if (sessionStorage.getItem(key)) return false;
     sessionStorage.setItem(key, '1');
     return true;
@@ -89,12 +95,16 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
             <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{trip.date || 'Сегодня'} · {trip.time}</div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
-              background: '#d1fae5', color: '#059669',
+              background: isScheduled ? '#ede9fe' : '#d1fae5',
+              color: isScheduled ? '#7c3aed' : '#059669',
               padding: '2px 10px', borderRadius: 20,
               fontSize: '0.72rem', fontWeight: 600, marginTop: 5
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              В процессе
+              {isScheduled ? (
+                <><Calendar size={11} /> Запланировано</>
+              ) : (
+                <><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} /> В процессе</>
+              )}
             </div>
           </div>
           <button className="panic-btn" onClick={onPanic} title="Тревожная кнопка">
@@ -140,14 +150,28 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
               </div>
             )}
 
-            {/* Кнопка "Выезжаю!" */}
-            <button
-              className={`going-btn ${goingNotified ? 'going-btn-done' : ''}`}
-              disabled={goingNotified || passengers.length === 0}
-              onClick={sendGoingMessage}
-            >
-              {goingNotified ? '✅ Уведомление отправлено!' : <><Zap size={15} /> Уведомить всех — Выезжаю!</>}
-            </button>
+            {/* Кнопка "Выезжаю!" — только если поездка сегодня */}
+            {isScheduled ? (
+              <div style={{
+                textAlign: 'center',
+                background: '#f5f3ff',
+                borderRadius: 12,
+                padding: '10px 14px',
+                fontSize: '0.82rem',
+                color: '#7c3aed',
+                fontWeight: 500,
+              }}>
+                🕐 Кнопка "Выезжаю!" будет доступна в день поездки
+              </div>
+            ) : (
+              <button
+                className={`going-btn ${goingNotified ? 'going-btn-done' : ''}`}
+                disabled={goingNotified || passengers.length === 0}
+                onClick={sendGoingMessage}
+              >
+                {goingNotified ? '✅ Уведомление отправлено!' : <><Zap size={15} /> Уведомить всех — Выезжаю!</>}
+              </button>
+            )}
           </div>
         ) : (
           /* Для ПАССАЖИРА — карточка водителя */
@@ -194,6 +218,36 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
           </div>
         )}
       </div>
+
+      {/* Баннер запланированной поездки */}
+      {isScheduled && (
+        <div style={{
+          background: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+          border: '1.5px solid #c4b5fd',
+          borderRadius: 14,
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Calendar size={22} color="white" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#4c1d95' }}>
+              Поездка запланирована
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#6d28d9', marginTop: 2 }}>
+              {trip.date} в {trip.time} — ждём дня поездки
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Карта */}
       <div style={{ borderRadius: 16, overflow: 'hidden' }}>
