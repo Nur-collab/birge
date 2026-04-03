@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import Chat from '../components/Chat';
 import { api } from '../utils/api';
+import TripAcceptedCard from '../components/TripAcceptedCard';
 
 export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessage }) {
   const { t } = useTranslation();
@@ -13,6 +14,16 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
 
   // Данные: isDriver из trip.isDriver
   const isDriver = trip?.isDriver || false;
+
+  // Для пассажира: показываем карточку "Поездка принята" при первом входе
+  // Ключ хранится в sessionStorage чтобы не показывать повторно при переключении вкладок
+  const [showAcceptedCard, setShowAcceptedCard] = useState(() => {
+    if (isDriver) return false;
+    const key = `birge_trip_card_shown_${trip?.id}`;
+    if (sessionStorage.getItem(key)) return false;
+    sessionStorage.setItem(key, '1');
+    return true;
+  });
 
   // Загружаем список пассажиров для водителя (и обновляем каждые 5 сек)
   useEffect(() => {
@@ -61,6 +72,14 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
 
   return (
     <div className="trip screen-content">
+
+      {/* Карточка "Поездка принята" — только для пассажира, только при первом открытии */}
+      {showAcceptedCard && !isDriver && (
+        <TripAcceptedCard
+          trip={trip}
+          onDismiss={() => setShowAcceptedCard(false)}
+        />
+      )}
 
       {/* Заголовок поездки */}
       <div className="trip-header glass-panel">
