@@ -179,6 +179,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
                 value={date}
                 min={today}
                 onChange={e => setDate(e.target.value)}
+                onClick={e => e.target.showPicker && e.target.showPicker()}
                 className="date-input-hidden"
               />
             </div>

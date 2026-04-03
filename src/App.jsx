@@ -289,6 +289,7 @@ function App() {
       from: acceptedReq?.origin,
       to: acceptedReq?.destination,
       time: acceptedReq?.time,
+      date: acceptedReq?.date,
       isDriver: true,
       seats: acceptedReq?.seats || 3,
       user: {

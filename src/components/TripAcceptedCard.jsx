@@ -236,7 +236,7 @@ export default function TripAcceptedCard({ trip, onDismiss }) {
         <div style={{
           textAlign: 'center',
           padding: '28px 24px 20px',
-          background: 'linear-gradient(180deg, #f0fdf4 0%, #white 100%)',
+          background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)',
         }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
