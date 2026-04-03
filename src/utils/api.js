@@ -150,6 +150,32 @@ export const api = {
         }
     },
 
+    getScheduledTrips: async () => {
+        try {
+            const response = await fetch(`${API_URL}/users/me/scheduled-trips`, {
+                headers: { ...getAuthHeader() }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (e) {
+            console.error('getScheduledTrips error:', e);
+            return [];
+        }
+    },
+
+    cancelScheduledTrip: async (tripId) => {
+        try {
+            await fetch(`${API_URL}/trips/${tripId}`, {
+                method: 'DELETE',
+                headers: { ...getAuthHeader() },
+            });
+            return true;
+        } catch (e) {
+            console.error('cancelScheduledTrip error:', e);
+            return false;
+        }
+    },
+
     submitReview: async (userId, authorName, rating, text) => {
         try {
             const response = await fetch(`${API_URL}/reviews/`, {

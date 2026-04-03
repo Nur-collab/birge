@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Home, Users, Map, User } from 'lucide-react';
+import { Home, Users, Map, User, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Dashboard from './screens/Dashboard';
 import Matches from './screens/Matches';
@@ -7,6 +7,7 @@ import Trip from './screens/Trip';
 import Profile from './screens/Profile';
 import Settings from './screens/Settings';
 import TripHistory from './screens/TripHistory';
+import ScheduledTrips from './screens/ScheduledTrips';
 import Login from './screens/Login';
 import InstallPWA from './components/InstallPWA';
 import PushNotification from './components/PushNotification';
@@ -45,6 +46,7 @@ function App() {
   const [incomingRequest, setIncomingRequest] = useState(null); // для водителя
   const [pendingRequestCount, setPendingRequestCount] = useState(0); // badge для водителя
   const seenRequestIds = React.useRef(new Set()); // чтобы не показывать один и тот же запрос дважды
+  const [scheduledTrips, setScheduledTrips] = useState([]); // запланированные поездки (для badge)
 
   // Обёртка setActiveTrip — автоматически пишет/очищает localStorage
   const setActiveTrip = useCallback((trip) => {
@@ -313,27 +315,37 @@ function App() {
   };
 
   const handleConnect = async (trip) => {
-    const today = new Date().toISOString().slice(0, 10);
-    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : today;
-    const isScheduled = tripDate > today;
-    await api.updateTripStatus(trip.id, isScheduled ? 'scheduled' : 'matched');
-    setActiveTrip({ ...trip, participants: 2, date: trip.date || 'Сегодня' });
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : todayStr;
+    const isScheduled = tripDate > todayStr;
+    // Для запланированных поездок оставляем статус 'scheduled', не меняем на 'matched'
+    if (!isScheduled) {
+      await api.updateTripStatus(trip.id, 'matched');
+    }
+    setActiveTrip({ ...trip, participants: 2, date: trip.date || 'Сегодня', isScheduled });
     setActiveTab('trip');
     setUnreadCount(0);
-    showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
+    const msg = isScheduled
+      ? `Поездка с ${trip.user?.name || 'попутчиком'} запланирована!`
+      : `Вы едете с ${trip.user?.name || 'попутчиком'}`;
+    showNotification(isScheduled ? '📅 Запланировано!' : 'Мэтч найден! 🎉', msg);
   };
 
   // При acceptе пассажир тоже получает данные машины водителя через requestInfo
   const handleConnectPassenger = async (trip) => {
     const { requestInfo } = trip;
-    const today = new Date().toISOString().slice(0, 10);
-    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : today;
-    const isScheduled = tripDate > today;
-    await api.updateTripStatus(trip.id, isScheduled ? 'scheduled' : 'matched');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : todayStr;
+    const isScheduled = tripDate > todayStr;
+    // Для запланированных поездок НЕ меняем статус на 'matched'
+    if (!isScheduled) {
+      await api.updateTripStatus(trip.id, 'matched');
+    }
     setActiveTrip({
       ...trip,
       participants: 2,
       date: trip.date || 'Сегодня',
+      isScheduled,
       driverCarModel: requestInfo?.driver_car_model,
       driverCarPlate: requestInfo?.driver_car_plate,
       driverCarColor: requestInfo?.driver_car_color,
@@ -342,7 +354,10 @@ function App() {
     });
     setActiveTab('trip');
     setUnreadCount(0);
-    showNotification('Мэтч найден! 🎉', `Вы едете с ${trip.user?.name || 'попутчиком'}`);
+    const msg = isScheduled
+      ? `Поездка с водителем запланирована!`
+      : `Вы едете с ${trip.user?.name || 'попутчиком'}`;
+    showNotification(isScheduled ? '📅 Запланировано!' : 'Мэтч найден! 🎉', msg);
   };
 
   const handleFinishTrip = () => {
@@ -389,23 +404,50 @@ function App() {
           />
         );
       case 'trip':
-        if (!activeTrip) {
+        // УМНАЯ ВКЛАДКА: если есть активная поездка — показываем её
+        // Если нет — показываем список запланированных
+        if (activeTrip) {
           return (
-            <div className="screen-content" style={{ textAlign: 'center', marginTop: '3rem' }}>
-              <p style={{ color: '#6b7280', marginBottom: '1rem' }}>{t('matches.empty')}</p>
-              <button className="primary-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setActiveTab('home')}>
-                {t('dash.find_ride')}
-              </button>
-            </div>
+            <Trip
+              trip={activeTrip}
+              currentUser={currentUser}
+              onNewMessage={handleNewChatMessage}
+              onPanic={() => showNotification('⚠️ Тревога!', 'Ваши координаты отправлены доверенному контакту.')}
+              onFinish={handleFinishTrip}
+            />
           );
         }
         return (
-          <Trip
-            trip={activeTrip}
+          <ScheduledTrips
             currentUser={currentUser}
-            onNewMessage={handleNewChatMessage}
-            onPanic={() => showNotification('⚠️ Тревога!', 'Ваши координаты отправлены доверенному контакту.')}
-            onFinish={handleFinishTrip}
+            onCancel={() => setActiveTab('home')}
+            onOpenTrip={(scheduledTrip) => {
+              // Открываем запланированную поездку в Trip.jsx
+              const tripData = {
+                id: scheduledTrip.trip_id,
+                from: scheduledTrip.origin,
+                to: scheduledTrip.destination,
+                origin: scheduledTrip.origin,
+                destination: scheduledTrip.destination,
+                time: scheduledTrip.time,
+                date: scheduledTrip.date,
+                isDriver: scheduledTrip.role === 'driver',
+                isScheduled: true,
+                seats: scheduledTrip.seats,
+                user: scheduledTrip.role === 'passenger' && scheduledTrip.driver ? {
+                  id: scheduledTrip.driver.id,
+                  name: scheduledTrip.driver.name,
+                  photo: scheduledTrip.driver.photo,
+                  trust_rating: scheduledTrip.driver.trust_rating,
+                  is_verified: scheduledTrip.driver.is_verified,
+                } : null,
+                driverCarModel: scheduledTrip.driver?.car_model,
+                driverCarPlate: scheduledTrip.driver?.car_plate,
+                driverCarColor: scheduledTrip.driver?.car_color,
+              };
+              setActiveTrip(tripData);
+              // Не переключаем таб — Trip уже рендерится в этом же case
+            }}
           />
         );
       case 'profile':
@@ -477,10 +519,10 @@ function App() {
           <span>{t('matches.title')}</span>
         </button>
         <button className={`nav-item ${activeTab === 'trip' ? 'active' : ''}`} onClick={() => handleTabChange('trip')}>
-          <Map size={24} />
+          {activeTrip ? <Map size={24} /> : <Calendar size={24} />}
           {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
           {activeTrip && unreadCount === 0 && <span className="badge dot" />}
-          <span>{t('nav.create')}</span>
+          <span>{activeTrip ? t('nav.create') : 'Поездки'}</span>
         </button>
         <button className={`nav-item ${(activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'active' : ''}`} onClick={() => handleTabChange('profile')}>
           <User size={24} />
