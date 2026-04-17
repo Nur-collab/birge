@@ -190,4 +190,18 @@ export const api = {
             return null;
         }
     },
+
+    verifyAccount: async () => {
+        try {
+            const response = await fetch(`${API_URL}/users/me/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+            });
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (e) {
+            console.error('verifyAccount error:', e);
+            return null;
+        }
+    },
 };

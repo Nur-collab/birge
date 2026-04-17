@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
@@ -8,6 +8,8 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
   const [user, setUser] = useState(userProp || null);
   const [error, setError] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null); // {status, message, bot_url?}
   const fileInputRef = React.useRef(null);
 
   // Используем публичный ImgBB ключ для тестов (без регистрации)
@@ -48,6 +50,22 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleVerify = async () => {
+    setVerifyLoading(true);
+    setVerifyResult(null);
+    const result = await api.verifyAccount();
+    if (!result) {
+      setVerifyResult({ status: 'error', message: 'Ошибка соединения. Попробуйте позже.' });
+    } else {
+      setVerifyResult(result);
+      // Обновляем локальный стейт пользователя если верифицировали
+      if (result.status === 'verified') {
+        setUser(prev => prev ? { ...prev, is_verified: true } : prev);
+      }
+    }
+    setVerifyLoading(false);
   };
 
   useEffect(() => {
@@ -216,6 +234,98 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
               Добавьте данные машины — пассажиры увидят их перед поездкой
             </p>
           </div>
+        )}
+      </div>
+
+      {/* ====== КАРТОЧКА ВЕРИФИКАЦИИ ====== */}
+      <div className="glass-panel" style={{ padding: '1.2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: user.is_verified ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#e5e7eb,#d1d5db)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ShieldCheck size={20} color="white" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1f2937' }}>
+              {user.is_verified ? '✅ Аккаунт верифицирован' : 'Верификация аккаунта'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 2 }}>
+              {user.is_verified
+                ? 'Другие пользователи видят значок доверия на вашем профиле'
+                : 'Повышает доверие — значок ✅ виден всем попутчикам'}
+            </div>
+          </div>
+        </div>
+
+        {!user.is_verified && (
+          <>
+            {/* Результат запроса */}
+            {verifyResult && (
+              <div style={{
+                marginBottom: 10, padding: '10px 14px', borderRadius: 12,
+                background: verifyResult.status === 'verified' ? '#f0fdf4'
+                  : verifyResult.status === 'need_telegram' ? '#fffbeb'
+                  : '#fef2f2',
+                border: `1px solid ${
+                  verifyResult.status === 'verified' ? '#bbf7d0'
+                  : verifyResult.status === 'need_telegram' ? '#fde68a'
+                  : '#fecdd3'
+                }`,
+                fontSize: '0.82rem',
+                color: verifyResult.status === 'verified' ? '#065f46'
+                  : verifyResult.status === 'need_telegram' ? '#92400e'
+                  : '#9f1239',
+              }}>
+                {verifyResult.message}
+              </div>
+            )}
+
+            {/* Кнопка ссылки на бота если нужно привязать Telegram */}
+            {verifyResult?.status === 'need_telegram' && verifyResult.bot_url && (
+              <a
+                href={verifyResult.bot_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  width: '100%', padding: '11px', marginBottom: 8,
+                  background: 'linear-gradient(135deg,#0088cc,#006fa8)',
+                  color: 'white', borderRadius: 12, textDecoration: 'none',
+                  fontWeight: 700, fontSize: '0.9rem',
+                  boxShadow: '0 3px 12px rgba(0,136,204,0.35)',
+                }}
+              >
+                <ExternalLink size={16} />
+                Открыть Telegram-бота
+              </a>
+            )}
+
+            {/* Основная кнопка верификации */}
+            {verifyResult?.status !== 'verified' && (
+              <button
+                onClick={handleVerify}
+                disabled={verifyLoading}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: '100%', padding: '12px',
+                  background: verifyLoading ? '#e5e7eb' : 'linear-gradient(135deg,#10b981,#059669)',
+                  color: verifyLoading ? '#9ca3af' : 'white',
+                  border: 'none', borderRadius: 12,
+                  fontWeight: 700, fontSize: '0.92rem', cursor: verifyLoading ? 'wait' : 'pointer',
+                  boxShadow: verifyLoading ? 'none' : '0 3px 12px rgba(16,185,129,0.3)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {verifyLoading
+                  ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Проверяем...</>
+                  : verifyResult?.status === 'need_telegram'
+                  ? '🔄 Проверить снова'
+                  : <><ShieldCheck size={16} /> Верифицировать через Telegram</>}
+              </button>
+            )}
+          </>
         )}
       </div>
 
