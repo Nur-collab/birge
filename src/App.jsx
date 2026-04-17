@@ -81,14 +81,14 @@ function App() {
     tryLoad();
   }, [isLoggedIn]);
 
-  // Polling входящих запросов для ВОДИТЕЛЯ каждые 4 секунды
-  // Работает если есть myTripId (водитель в поиске) или activeTrip (уже в поездке)
+  // SSE-подписка на новые запросы для ВОДИТЕЛЯ
+  // Активна пока водитель в поиске (myTripId) или в активной поездке (activeTrip)
   useEffect(() => {
     if (!currentUser || (!myTripId && !activeTrip)) return;
 
+    /** Звук + вибрация при новом запросе */
     const playNotificationSound = () => {
       try {
-        // Простой beep через Web Audio API
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -101,36 +101,65 @@ function App() {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.4);
       } catch (_) { }
-      // Вибрация на мобильных
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     };
 
-    const poll = setInterval(async () => {
+    /** Обработка одного входящего запроса */
+    const handleIncomingRequest = (req) => {
+      if (!req?.id || seenRequestIds.current.has(req.id)) return;
+      seenRequestIds.current.add(req.id);
+      setPendingRequestCount(prev => prev + 1);
+      setIncomingRequest(req);
+      playNotificationSound();
+      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        new Notification('🙋 Новый запрос на поездку!', {
+          body: `${req.requester_name} хочет присоединиться`,
+          icon: '/pwa-192x192.png',
+        });
+      }
+    };
+
+    // --- SSE: мгновенные уведомления от бэкенда ---
+    let es = null;
+    const token = localStorage.getItem('birge_token');
+
+    if (token && typeof EventSource !== 'undefined') {
+      // EventSource не поддерживает кастомные заголовки → передаём токен через ?token=
+      es = new EventSource(
+        `${API_URL}/trip-requests/driver-events/${currentUser.id}?token=${encodeURIComponent(token)}`
+      );
+
+      es.addEventListener('new_request', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handleIncomingRequest(data);
+        } catch (_) { }
+      });
+
+      // При ошибке SSE браузер автоматически переподключается —
+      // fallback polling подхватит пропущенные запросы в период разрыва
+      es.onerror = () => { /* silent – fallback poll покрывает */ };
+    }
+
+    // --- Fallback polling: каждые 30 сек (резерв если SSE недоступен / прокси обрывает) ---
+    const fallbackPoll = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` }
+          headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
         });
         const requests = await res.json();
+        // Обновляем счётчик на реальное число pending-запросов
         setPendingRequestCount(requests.length);
-
-        // Показываем модал только для НОВЫХ запросов (не виденных раньше)
+        // Показываем модал за новые запросы, пропущенные SSE
         const newReq = requests.find(r => !seenRequestIds.current.has(r.id));
-        if (newReq) {
-          seenRequestIds.current.add(newReq.id);
-          setIncomingRequest(newReq);
-          playNotificationSound();
-          // Нативный push если приложение свёрнуто
-          if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-            new Notification('🙋 Новый запрос на поездку!', {
-              body: `${newReq.requester_name} хочет присоединиться`,
-              icon: '/pwa-192x192.png',
-            });
-          }
-        }
-      } catch (e) { }
-    }, 4000);
+        if (newReq) handleIncomingRequest(newReq);
+      } catch (_) { }
+    }, 30000);
 
-    return () => clearInterval(poll);
+    return () => {
+      es?.close();
+      clearInterval(fallbackPoll);
+    };
   }, [currentUser, myTripId, activeTrip]);
 
   const handleLoggedIn = () => setIsLoggedIn(true);
