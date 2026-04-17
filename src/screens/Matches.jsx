@@ -77,6 +77,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
             from: m.origin, to: m.destination,
             origin: m.origin, destination: m.destination,
             time: m.time, date: m.date || null,
+            price_per_seat: m.price_per_seat || 0,
             userId: m.user_id, user_id: m.user_id,
             user: {
               id: m.user?.id, name: m.user?.name || 'Пользователь',
@@ -268,6 +269,22 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                     <div className="date-badge">
                       <Calendar size={10} />
                       {formatChipLabel(trip.date).replace('📅 ', '')}
+                    </div>
+                  )}
+                  {/* Цена за место */}
+                  {trip.role === 'driver' && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: trip.price_per_seat > 0 ? '#f0fdf4' : '#f9fafb',
+                      border: `1px solid ${trip.price_per_seat > 0 ? '#bbf7d0' : '#e5e7eb'}`,
+                      borderRadius: 10, padding: '2px 8px',
+                    }}>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: 700,
+                        color: trip.price_per_seat > 0 ? '#059669' : '#9ca3af',
+                      }}>
+                        {trip.price_per_seat > 0 ? `~${trip.price_per_seat} сом` : 'Договориться'}
+                      </span>
                     </div>
                   )}
                 </div>

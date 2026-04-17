@@ -12,6 +12,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [time, setTime] = useState('08:15');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [seats, setSeats] = useState(3);
+  const [price, setPrice] = useState(0); // цена за место в сомах (0 = бесплатно)
   const [geoLoading, setGeoLoading] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -58,7 +59,12 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch({ role, from, to, time, date, seats: role === 'driver' ? seats : 1 });
+    onSearch({
+      role,
+      from, to, time, date,
+      seats: role === 'driver' ? seats : 1,
+      price: role === 'driver' ? price : 0,
+    });
   };
 
   return (
@@ -212,6 +218,42 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
                   {n}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Цена за место (только для водителя) */}
+        {role === 'driver' && (
+          <div className="seats-row" style={{ marginBottom: '1.2rem' }}>
+            <span className="seats-label">💰 Стоимость места</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="number"
+                min="0"
+                max="9999"
+                step="50"
+                value={price || ''}
+                onChange={e => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                placeholder="0"
+                style={{
+                  width: 80,
+                  padding: '6px 10px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: 10,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: '#111827',
+                  textAlign: 'right',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.target.style.borderColor = '#10b981'}
+                onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+              />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6b7280' }}>сом</span>
+              {price === 0 && (
+                <span style={{ fontSize: '0.73rem', color: '#9ca3af' }}>бесплатно</span>
+              )}
             </div>
           </div>
         )}

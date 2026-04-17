@@ -279,7 +279,8 @@ function App() {
         destination: tripData.to,
         time: tripData.time,
         date: tripData.date || null,
-        user_id: currentUser.id
+        user_id: currentUser.id,
+        price_per_seat: tripData.price || 0,
       };
 
       await api.createTrip(apiTripData);
@@ -315,6 +316,7 @@ function App() {
           destination: m.destination,
           time: m.time,
           date: m.date || null,
+          price_per_seat: m.price_per_seat || 0,
           userId: m.user_id,
           user_id: m.user_id,
           user: {
