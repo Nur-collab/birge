@@ -14,6 +14,7 @@ import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
 import ColdStartSplash from './components/ColdStartSplash';
+import ResumeTripBanner from './components/ResumeTripBanner';
 import { api } from './utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
@@ -42,6 +43,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [backendLoading, setBackendLoading] = useState(false); // true пока бэкенд просыпается
   const [backendAttempt, setBackendAttempt] = useState(0);    // номер текущей попытки (для прогресс-бара)
+  const [orphanedTrip, setOrphanedTrip] = useState(null);     // поездка оставшаяся active после закрытия приложения
   const [unreadCount, setUnreadCount] = useState(0);
   const [showReview, setShowReview] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState(null);
@@ -72,6 +74,16 @@ function App() {
         setBackendLoading(false);
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission();
+        }
+        // Проверяем есть ли оставшаяся поездка (закрыл приложение во время поиска)
+        if (!loadTrip()) {
+          try {
+            const res = await fetch(`${API_URL}/users/me/active-trip`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
+            });
+            const data = await res.json();
+            if (data?.found) setOrphanedTrip(data);
+          } catch (_) { }
         }
       } else {
         attempts++;
@@ -185,7 +197,35 @@ function App() {
     setCurrentUser(null);
     setIsLoggedIn(false);
     setActiveTripState(null);
+    setOrphanedTrip(null);
     setActiveTab('home');
+  };
+
+  /** Возобновить поиск: восстанавливаем myTripId и переходим на вкладку Матчей */
+  const handleResumeOrphan = () => {
+    if (!orphanedTrip) return;
+    setMyTripId(orphanedTrip.trip_id);
+    setSearchCriteria({
+      role: orphanedTrip.role,
+      from: orphanedTrip.origin,
+      to: orphanedTrip.destination,
+      time: orphanedTrip.time,
+      date: orphanedTrip.date,
+    });
+    setOrphanedTrip(null);
+    setActiveTab('matches');
+  };
+
+  /** Удалить оставшуюся поездку из БД, скрыть баннер */
+  const handleDiscardOrphan = async () => {
+    if (!orphanedTrip) return;
+    setOrphanedTrip(null);
+    try {
+      await fetch(`${API_URL}/trips/${orphanedTrip.trip_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
+      });
+    } catch (_) { }
   };
 
   if (!isLoggedIn) {
@@ -554,6 +594,15 @@ function App() {
       </main>
 
       <InstallPWA />
+
+      {/* Баннер возобновления поиска */}
+      {orphanedTrip && activeTab === 'home' && (
+        <ResumeTripBanner
+          trip={orphanedTrip}
+          onResume={handleResumeOrphan}
+          onDiscard={handleDiscardOrphan}
+        />
+      )}
 
       <nav className="bottom-nav">
         <button className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => handleTabChange('home')}>
