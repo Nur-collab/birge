@@ -13,6 +13,7 @@ import InstallPWA from './components/InstallPWA';
 import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
+import ColdStartSplash from './components/ColdStartSplash';
 import { api } from './utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
@@ -39,6 +40,8 @@ function App() {
   const [activeTrip, setActiveTripState] = useState(loadTrip);
   const [notification, setNotification] = useState({ show: false, title: '', message: '' });
   const [currentUser, setCurrentUser] = useState(null);
+  const [backendLoading, setBackendLoading] = useState(false); // true пока бэкенд просыпается
+  const [backendAttempt, setBackendAttempt] = useState(0);    // номер текущей попытки (для прогресс-бара)
   const [unreadCount, setUnreadCount] = useState(0);
   const [showReview, setShowReview] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState(null);
@@ -56,29 +59,41 @@ function App() {
 
   useEffect(() => {
     if (!isLoggedIn) return;
+
+    // Render free tier засыпает после простоя → даём 60 сек (20 попыток × 3 сек)
+    const MAX_ATTEMPTS = 20;
     let attempts = 0;
-    const maxAttempts = 5;
+    let timer = null;
 
     const tryLoad = async () => {
       const user = await api.getCurrentUser();
       if (user) {
         setCurrentUser(user);
+        setBackendLoading(false);
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission();
         }
       } else {
         attempts++;
-        if (attempts < maxAttempts) {
-          // Бэкенд ещё грузится (Render cold start) — повторим через 3с
-          setTimeout(tryLoad, 3000);
+        setBackendAttempt(attempts);
+
+        if (attempts === 1) {
+          // Показываем сплэш только после первой неудачной попытки
+          setBackendLoading(true);
+        }
+
+        if (attempts < MAX_ATTEMPTS) {
+          timer = setTimeout(tryLoad, 3000);
         } else {
-          // После 5 попыток — токен невалиден, выходим
+          // 60 секунд прошло — токен невалиден или сервер недоступен
+          setBackendLoading(false);
           handleLogout();
         }
       }
     };
 
     tryLoad();
+    return () => { if (timer) clearTimeout(timer); };
   }, [isLoggedIn]);
 
   // SSE-подписка на новые запросы для ВОДИТЕЛЯ
@@ -175,6 +190,11 @@ function App() {
 
   if (!isLoggedIn) {
     return <Login onLoggedIn={handleLoggedIn} />;
+  }
+
+  // Бэкенд ещё просыпается — показываем красивый сплэш вместо белого экрана
+  if (backendLoading) {
+    return <ColdStartSplash attempt={backendAttempt} maxAttempts={20} />;
   }
 
   const showNotification = (title, message) => {
