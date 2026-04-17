@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck, Car, Zap, Users, Calendar } from 'lucide-react';
+import { AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck, Car, Zap, Users, Calendar, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import Chat from '../components/Chat';
@@ -11,6 +11,8 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const [goingNotified, setGoingNotified] = useState(false);
   const [passengers, setPassengers] = useState([]);
   const [seats, setSeats] = useState(trip?.seats || 3);
+  const [cancelConfirm, setCancelConfirm] = useState(false); // шаг подтверждения отмены
+  const [cancelling, setCancelling] = useState(false);
 
   // Определяем: поездка запланирована (дата в будущем)?
   const today = new Date().toISOString().slice(0, 10);
@@ -74,6 +76,35 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
       setTimeout(() => ws.close(), 500);
     };
     setGoingNotified(true);
+  };
+
+  /** Пассажир отменяет свою поездку */
+  const handleCancelTrip = async () => {
+    if (!cancelConfirm) {
+      // Первый тап — показываем кнопку подтверждения
+      setCancelConfirm(true);
+      // Авто-сброс через 4 сек (не нажал — передумал)
+      setTimeout(() => setCancelConfirm(false), 4000);
+      return;
+    }
+    // Второй тап — подтверждение получено, отменяем
+    setCancelling(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
+      await fetch(`${API_URL}/trips/${trip.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('birge_token')}`,
+        },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+    } catch (_) {
+      // Даже если запрос упал — всё равно закрываем экран
+    } finally {
+      setCancelling(false);
+      onFinish(); // возвращаемся на home через ReviewModal
+    }
   };
 
   return (
@@ -263,9 +294,49 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
         <Chat tripId={chatRoomId} currentUser={currentUser} partnerName={partnerName} onNewMessage={onNewMessage} />
       </div>
 
-      <button className="primary-btn finish-btn" onClick={onFinish}>
-        Завершить поездку
-      </button>
+      {/* Действия */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+        {/* Кнопка Отмены — только для ПАССАЖИРА */}
+        {!isDriver && (
+          <button
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '13px 20px',
+              background: cancelConfirm
+                ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
+                : '#fff1f2',
+              color: cancelConfirm ? 'white' : '#dc2626',
+              border: `1.5px solid ${cancelConfirm ? '#dc2626' : '#fecdd3'}`,
+              borderRadius: 16,
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              cursor: cancelling ? 'wait' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: cancelConfirm ? '0 4px 14px rgba(220,38,38,0.3)' : 'none',
+            }}
+            onClick={handleCancelTrip}
+            disabled={cancelling}
+          >
+            <XCircle size={18} />
+            {cancelling
+              ? 'Отменяем...'
+              : cancelConfirm
+              ? '❗ Нажмите ещё раз для подтверждения'
+              : 'Отменить поездку'}
+          </button>
+        )}
+
+        {/* Завершить — для всех */}
+        <button className="primary-btn finish-btn" onClick={onFinish}>
+          {isDriver ? 'Завершить поездку' : 'Приехали ✅'}
+        </button>
+
+      </div>
 
       <style>{`
         .trip { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 20px; }
