@@ -176,12 +176,13 @@ export const api = {
         }
     },
 
-    submitReview: async (userId, authorName, rating, text) => {
+    submitReview: async (userId, rating, text) => {
         try {
             const response = await fetch(`${API_URL}/reviews/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                body: JSON.stringify({ user_id: userId, author_name: authorName, rating, text }),
+                // author_name берётся из JWT на бэкенде — не передаём
+                body: JSON.stringify({ user_id: userId, rating, text }),
             });
             if (!response.ok) return null;
             return await response.json();

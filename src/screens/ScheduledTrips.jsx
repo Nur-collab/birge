@@ -45,11 +45,22 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
     return () => clearInterval(interval);
   }, [load]);
 
-  const handleCancel = async (tripId) => {
-    if (!window.confirm('Отменить запланированную поездку?')) return;
-    setCancellingId(tripId);
-    await api.cancelScheduledTrip(tripId);
-    setTrips(prev => prev.filter(t => t.trip_id !== tripId));
+  const handleCancel = async (trip) => {
+    // Водитель отменяет свою поездку (trip_id),
+    // пассажир отменяет свой запрос (requester_trip_id).
+    const idToCancel = trip.role === 'driver' ? trip.trip_id : trip.requester_trip_id;
+    if (!idToCancel) return;
+
+    const confirmMsg =
+      trip.role === 'driver'
+        ? 'Отменить запланированную поездку? Все пассажиры будут уведомлены.'
+        : 'Отказаться от поездки с этим водителем?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setCancellingId(trip.trip_id);
+    await api.cancelScheduledTrip(idToCancel);
+    setTrips(prev => prev.filter(t => t.trip_id !== trip.trip_id));
     setCancellingId(null);
   };
 
@@ -220,16 +231,14 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
                 >
                   Открыть поездку <ChevronRight size={15} />
                 </button>
-                {trip.role === 'driver' && (
-                  <button
-                    className={`sched-cancel-btn ${cancellingId === trip.trip_id ? 'loading' : ''}`}
-                    onClick={() => handleCancel(trip.trip_id)}
-                    disabled={cancellingId === trip.trip_id}
-                    title="Отменить поездку"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                )}
+                <button
+                  className={`sched-cancel-btn ${cancellingId === trip.trip_id ? 'loading' : ''}`}
+                  onClick={() => handleCancel(trip)}
+                  disabled={cancellingId === trip.trip_id}
+                  title={trip.role === 'driver' ? 'Отменить поездку' : 'Отказаться от поездки'}
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}

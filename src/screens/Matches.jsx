@@ -8,16 +8,18 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.
 
 // Вспомогательные функции API для запросов
 const requestApi = {
-  sendRequest: async (tripId, requesterTripId, requesterId, driverId) => {
+  sendRequest: async (tripId, requesterTripId, driverId) => {
+    // requester_id берётся из JWT на бэкенде — не передаём
     const res = await fetch(`${API_URL}/trip-requests/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-      body: JSON.stringify({ trip_id: tripId, requester_trip_id: requesterTripId, requester_id: requesterId, driver_id: driverId }),
+      body: JSON.stringify({ trip_id: tripId, requester_trip_id: requesterTripId, driver_id: driverId }),
     });
     return res.json();
   },
-  checkStatus: async (requesterId, tripId) => {
-    const res = await fetch(`${API_URL}/trip-requests/status/${requesterId}/${tripId}`, {
+  checkStatus: async (tripId) => {
+    // requester_id берётся из JWT — не передаём в пути
+    const res = await fetch(`${API_URL}/trip-requests/status/${tripId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
     });
     return res.json();
@@ -120,7 +122,14 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
       es.addEventListener('request_update', (e) => {
         try {
           const data = JSON.parse(e.data);
+          // Обрабатываем ответ водителя (accepted/declined)
           handleStatusUpdate(data);
+          // Обрабатываем SSE-событие завершения поездки водителем
+          if (data?.event === 'trip_completed' && !connectedRef.current) {
+            connectedRef.current = true;
+            const matchedTrip = matches.find(m => m.id === data.trip_id) || matches[0];
+            if (matchedTrip) onConnect({ ...matchedTrip, id: data.trip_id, requestInfo: { status: 'completed', trip_id: data.trip_id } });
+          }
         } catch (_) { }
       });
 
@@ -134,7 +143,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
       if (connectedRef.current) return; // уже подключились через SSE
       for (const trip of matches) {
         try {
-          const st = await requestApi.checkStatus(currentUser.id, trip.id);
+          const st = await requestApi.checkStatus(trip.id);
           handleStatusUpdate(st);
         } catch (e) { }
       }
@@ -150,7 +159,8 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
     if (!currentUser || !myTripId) return;
     setRequestStatus(prev => ({ ...prev, [trip.id]: 'sending' }));
     try {
-      await requestApi.sendRequest(trip.id, myTripId, currentUser.id, trip.user_id);
+      // requester_id берётся из JWT — не передаём
+      await requestApi.sendRequest(trip.id, myTripId, trip.user_id);
       setRequestStatus(prev => ({ ...prev, [trip.id]: 'pending' }));
     } catch (e) {
       setRequestStatus(prev => ({ ...prev, [trip.id]: null }));

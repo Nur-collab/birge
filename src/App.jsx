@@ -171,7 +171,7 @@ function App() {
     // --- Fallback polling: каждые 30 сек (резерв если SSE недоступен / прокси обрывает) ---
     const fallbackPoll = setInterval(async () => {
       try {
-        const res = await fetch(`${API_URL}/trip-requests/incoming/${currentUser.id}`, {
+        const res = await fetch(`${API_URL}/trip-requests/incoming/`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
         });
         const requests = await res.json();
@@ -279,17 +279,13 @@ function App() {
         destination: tripData.to,
         time: tripData.time,
         date: tripData.date || null,
-        user_id: currentUser.id,
+        seats: tripData.seats || 3,
         price_per_seat: tripData.price || 0,
       };
 
-      await api.createTrip(apiTripData);
-      setMyTripId(null); // reset
-      // После создания — получаем реальный ID из БД
-      const myTrips = await api.getMyTrips();
-      if (myTrips.length > 0) {
-        setMyTripId(myTrips[myTrips.length - 1].id);
-      }
+      const createdTrip = await api.createTrip(apiTripData);
+      // ID поездки берём напрямую из ответа бэкенда — надёжно и без лишнего запроса
+      setMyTripId(createdTrip.id);
 
       if (tripData.role === 'driver') {
         setCurrentUser(prev => ({ ...prev, trips_today: prev.trips_today + 1 }));
@@ -458,8 +454,11 @@ function App() {
 
   const handleReviewSubmit = async (rating, text) => {
     if (activeTrip && activeTrip.user && currentUser) {
-      await api.submitReview(activeTrip.user.id, currentUser.name, rating, text);
+      await api.submitReview(activeTrip.user.id, rating, text);
       await api.updateTripStatus(activeTrip.id, 'completed');
+      // Обновляем профиль текущего пользователя, чтобы новый рейтинг отобразился сразу
+      const refreshed = await api.getCurrentUser();
+      if (refreshed) setCurrentUser(refreshed);
     }
     // Закрываем через 1.5 сек после успешной отправки
     setTimeout(() => {
