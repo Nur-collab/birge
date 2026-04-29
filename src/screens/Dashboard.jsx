@@ -69,31 +69,25 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   return (
     <div className="dashboard screen-content">
-      {/* Выбор роли */}
-      <div className="role-selector glass-panel">
-        <p className="role-label">Я еду как</p>
-        <div className="role-btns">
+      {/* Сегментированный контрол роли */}
+      <div className="role-segment-wrap">
+        <p className="role-segment-label">Я еду как</p>
+        <div className="role-segment">
           <button
             type="button"
-            className={`role-card ${role === 'passenger' ? 'active' : ''}`}
+            className={`role-seg-btn ${role === 'passenger' ? 'seg-active seg-passenger' : ''}`}
             onClick={() => setRole('passenger')}
           >
-            <div className={`role-icon ${role === 'passenger' ? 'active-green' : ''}`}>
-              <User size={22} />
-            </div>
-            <span className="role-name">{t('matches.passenger')}</span>
-            <span className="role-desc">Ищу водителя</span>
+            <User size={16} />
+            <span>{t('matches.passenger')}</span>
           </button>
           <button
             type="button"
-            className={`role-card driver ${role === 'driver' ? 'active driver-active' : ''}`}
+            className={`role-seg-btn ${role === 'driver' ? 'seg-active seg-driver' : ''}`}
             onClick={() => setRole('driver')}
           >
-            <div className={`role-icon ${role === 'driver' ? 'active-amber' : 'amber-idle'}`}>
-              <Car size={22} />
-            </div>
-            <span className="role-name">{t('matches.driver')}</span>
-            <span className="role-desc">Предлагаю места</span>
+            <Car size={16} />
+            <span>{t('matches.driver')}</span>
           </button>
         </div>
       </div>
@@ -269,104 +263,109 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
         .dashboard {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.9rem;
         }
 
-        /* Role selector */
-        .role-selector { padding: 1rem; }
-        .role-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #9ca3af;
+        /* Role segment */
+        .role-segment-wrap {
+          background: white;
+          border-radius: 18px;
+          padding: 14px 16px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+        }
+        .role-segment-label {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #94a3b8;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.8px;
           margin-bottom: 10px;
         }
-        .role-btns { display: flex; gap: 10px; }
-        .role-card {
+        .role-segment {
+          display: flex;
+          background: #f1f5f9;
+          border-radius: 14px;
+          padding: 4px;
+          gap: 4px;
+        }
+        .role-seg-btn {
           flex: 1;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 5px;
-          padding: 14px 8px;
-          border: 2px solid #e5e7eb;
-          border-radius: 14px;
-          background: #f9fafb;
+          justify-content: center;
+          gap: 7px;
+          padding: 11px 10px;
+          border: none;
+          border-radius: 11px;
+          background: transparent;
+          color: #64748b;
+          font-size: 0.9rem;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.22s ease;
+          letter-spacing: 0.1px;
         }
-        .role-card:hover { background: #f3f4f6; transform: translateY(-1px); }
-        .role-card.active {
-          border-color: #10b981;
-          background: #f0fdf4;
-          box-shadow: 0 4px 14px rgba(16,185,129,0.15);
-          transform: translateY(-2px);
+        .role-seg-btn:hover { background: rgba(255,255,255,0.7); }
+        .seg-active {
+          background: white !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .role-card.driver-active {
-          border-color: #f59e0b !important;
-          background: #fffbeb !important;
-          box-shadow: 0 4px 14px rgba(245,158,11,0.15) !important;
-        }
-        .role-icon {
-          width: 44px; height: 44px;
-          border-radius: 12px;
-          display: flex; align-items: center; justify-content: center;
-          background: #e5e7eb; color: #6b7280;
-          transition: all 0.2s;
-        }
-        .role-icon.active-green { background: #10b981; color: white; }
-        .role-icon.active-amber { background: #f59e0b; color: white; }
-        .role-icon.amber-idle { background: #fef3c7; color: #f59e0b; }
-        .role-name { font-weight: 700; font-size: 0.88rem; color: #374151; }
-        .role-desc { font-size: 0.7rem; color: #9ca3af; }
+        .seg-passenger.seg-active { color: #059669; }
+        .seg-driver.seg-active { color: #d97706; }
 
         /* Map */
         .mini-map-wrap {
-          border-radius: 16px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: var(--shadow);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
 
         /* Form */
-        .trip-form { padding: 1.2rem; }
+        .trip-form {
+          border-radius: 18px;
+          padding: 1.2rem;
+          background: white;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+          border: 1px solid #f1f5f9;
+        }
         .form-title {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
-          color: var(--dark);
+          color: #0f172a;
           margin-bottom: 1rem;
+          letter-spacing: 0.1px;
         }
 
         /* Route block */
         .route-block {
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
           overflow: hidden;
-          margin-bottom: 1rem;
+          margin-bottom: 0.9rem;
         }
         .route-row {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 4px 12px;
+          padding: 4px 14px;
         }
         .dot {
-          width: 10px; height: 10px;
+          width: 9px; height: 9px;
           border-radius: 50%; flex-shrink: 0;
         }
         .dot.green { background: #10b981; }
         .dot.red { background: #f43f5e; }
         .route-field { flex: 1; }
-        .route-divider-line { height: 1px; background: #e5e7eb; margin: 0 12px; }
+        .route-divider-line { height: 1px; background: #e2e8f0; margin: 0 14px; }
         .geo-btn {
           width: 32px; height: 32px; flex-shrink: 0;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
           background: white;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          color: var(--primary);
+          color: #10b981;
           transition: all 0.2s;
         }
         .geo-btn:hover:not(:disabled) { background: #f0fdf4; border-color: #10b981; }
@@ -374,26 +373,27 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
         /* DateTime */
         .datetime-block {
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
           overflow: hidden;
-          margin-bottom: 1.2rem;
+          margin-bottom: 1rem;
+          background: #f8fafc;
         }
         .time-row {
           display: flex;
           align-items: center;
-          gap: 8px;
-          background: #f9fafb;
-          padding: 10px 14px;
+          gap: 10px;
+          padding: 12px 14px;
           border: none;
+          background: transparent;
         }
-        .time-label { flex: 1; font-size: 0.85rem; font-weight: 500; color: #6b7280; }
+        .time-label { flex: 1; font-size: 0.83rem; font-weight: 500; color: #64748b; }
         .time-input {
           border: none;
           background: transparent;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
-          color: var(--dark);
+          color: #0f172a;
           outline: none;
           cursor: pointer;
         }
@@ -403,24 +403,21 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           align-items: center;
         }
         .date-label-text {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
           color: #6366f1;
           cursor: pointer;
-          padding: 2px 6px;
-          border-radius: 6px;
+          padding: 2px 8px;
+          border-radius: 8px;
           transition: background 0.15s;
         }
         .date-label-text:hover { background: #ede9fe; }
         .date-input-hidden {
           position: absolute;
-          width: 100%;
-          height: 100%;
-          opacity: 0;
-          cursor: pointer;
+          width: 100%; height: 100%;
+          opacity: 0; cursor: pointer;
           top: 0; left: 0;
-          border: none;
-          background: none;
+          border: none; background: none;
         }
 
         .search-btn {
@@ -429,15 +426,16 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           justify-content: center;
           gap: 8px;
           background: linear-gradient(135deg, #10b981, #059669) !important;
-          box-shadow: 0 4px 15px rgba(16,185,129,0.35) !important;
-          font-size: 0.95rem;
+          box-shadow: 0 4px 20px rgba(16,185,129,0.3) !important;
+          font-size: 0.93rem;
           font-weight: 700;
           letter-spacing: 0.2px;
           margin-top: 0;
+          border-radius: 14px !important;
         }
         .search-btn:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(16,185,129,0.45) !important;
+          box-shadow: 0 6px 24px rgba(16,185,129,0.4) !important;
         }
 
         /* Seats selector */
@@ -445,22 +443,22 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
           padding: 10px 14px;
-          margin-bottom: 1.2rem;
+          margin-bottom: 1rem;
         }
-        .seats-label { font-size: 0.88rem; font-weight: 500; color: #6b7280; }
+        .seats-label { font-size: 0.85rem; font-weight: 500; color: #64748b; }
         .seats-btns { display: flex; gap: 6px; }
         .seat-btn {
           width: 36px; height: 36px;
-          border: 2px solid #e5e7eb;
+          border: 1.5px solid #e2e8f0;
           border-radius: 10px;
           background: white;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 700;
-          color: #6b7280;
+          color: #64748b;
           cursor: pointer;
           transition: all 0.18s;
         }
@@ -469,6 +467,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           border-color: #10b981;
           background: #10b981;
           color: white;
+          box-shadow: 0 2px 8px rgba(16,185,129,0.3);
         }
       `}</style>
     </div>

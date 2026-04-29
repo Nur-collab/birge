@@ -590,8 +590,18 @@ function App() {
         />
       )}
 
-      <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'block' }}>
-        <h1>{t('title')}</h1>
+      <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'flex' }}>
+        <div className="header-inner">
+          <div className="header-logo">
+            <div className="header-logo-badge">Б</div>
+            <span className="header-title">BIRGE</span>
+          </div>
+          {currentUser && (
+            <span className="header-greeting">
+              {currentUser.name?.split(' ')[0] || 'Привет'} 👋
+            </span>
+          )}
+        </div>
       </header>
 
       <main className="main-content">
@@ -634,31 +644,51 @@ function App() {
       </nav>
 
       <style>{`
-        .app-container { padding-bottom: 70px; min-height: 100vh; }
+        .app-container { padding-bottom: 88px; min-height: 100vh; }
         .bottom-nav {
-          position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-          width: 100%; max-width: 480px; background: white;
-          display: flex; justify-content: space-around;
-          padding: 10px 0 15px 0; border-top: 1px solid #e5e7eb;
-          box-shadow: 0 -4px 10px rgba(0,0,0,0.03); z-index: 100;
+          position: fixed;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: calc(100% - 28px);
+          max-width: 452px;
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(0,0,0,0.07);
+          border-radius: 28px;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+          display: flex;
+          justify-content: space-around;
+          padding: 6px;
+          z-index: 100;
         }
         .nav-item {
+          flex: 1;
           display: flex; flex-direction: column; align-items: center;
-          gap: 4px; background: none; border: none; color: #9ca3af;
-          font-size: 0.75rem; font-weight: 500; cursor: pointer;
-          position: relative; transition: color 0.2s; padding: 0 12px;
+          gap: 3px; background: none; border: none; color: #94a3b8;
+          font-size: 0.68rem; font-weight: 600; cursor: pointer;
+          position: relative; transition: all 0.2s;
+          padding: 9px 6px 8px;
+          border-radius: 20px;
+          letter-spacing: 0.2px;
         }
-        .nav-item:hover { color: #6b7280; }
-        .nav-item.active { color: var(--primary); }
+        .nav-item:hover { color: #64748b; background: #f8fafc; }
+        .nav-item.active {
+          color: #059669;
+          background: #f0fdf4;
+        }
         .badge {
-          position: absolute; top: -5px; right: 10px;
-          background: #f43f5e; color: white; font-size: 0.65rem;
-          font-weight: bold; min-width: 16px; height: 16px; border-radius: 8px;
+          position: absolute; top: 2px; right: 12px;
+          background: #f43f5e; color: white; font-size: 0.62rem;
+          font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
           padding: 0 4px; border: 2px solid white;
+          box-shadow: 0 2px 6px rgba(244,63,94,0.4);
         }
         .badge.dot {
-          width: 10px; height: 10px; min-width: unset; right: 14px; padding: 0;
+          width: 8px; height: 8px; min-width: unset; right: 14px; padding: 0;
+          top: 4px;
         }
         .badge.incoming-badge {
           background: #f59e0b;
