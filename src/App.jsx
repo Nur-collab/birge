@@ -590,7 +590,7 @@ function App() {
         />
       )}
 
-      <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'flex' }}>
+      <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'block' }}>
         <div className="header-inner">
           <div className="header-logo">
             <div className="header-logo-badge">Б</div>
