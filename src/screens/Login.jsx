@@ -206,7 +206,7 @@ export default function Login({ onLoggedIn }) {
       </div>
 
       <p className="login-footer">
-        Входя, вы соглашаетесь с <a href="#">Правилами</a> и <a href="#">Политикой конфиденциальности</a>
+        Входя, вы соглашаетесь с <a href="/terms.html" target="_blank" rel="noopener noreferrer">Правилами</a> и <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a>
       </p>
 
       <style>{`

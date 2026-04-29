@@ -12,8 +12,9 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
   const [verifyResult, setVerifyResult] = useState(null); // {status, message, bot_url?}
   const fileInputRef = React.useRef(null);
 
-  // Используем публичный ImgBB ключ для тестов (без регистрации)
-  const IMGBB_API_KEY = '0a4da4d3f56ce2658fd6fbebc8e727e7';
+  // ImgBB API ключ берётся из переменной окружения VITE_IMGBB_KEY
+  // Локально: .env файл, на Vercel: Settings → Environment Variables
+  const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_KEY || '';
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];

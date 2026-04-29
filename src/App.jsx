@@ -502,7 +502,11 @@ function App() {
               trip={activeTrip}
               currentUser={currentUser}
               onNewMessage={handleNewChatMessage}
-              onPanic={() => showNotification('⚠️ Тревога!', 'Ваши координаты отправлены доверенному контакту.')}
+              onPanic={async () => {
+                // Отправляем реальный тревожный сигнал в Telegram поддержки
+                await api.sendPanic(activeTrip?.id);
+                showNotification('🚨 Тревога отправлена!', 'Команда поддержки уведомлена через Telegram.');
+              }}
               onFinish={handleFinishTrip}
             />
           );

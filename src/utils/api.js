@@ -205,4 +205,19 @@ export const api = {
             return null;
         }
     },
+
+    sendPanic: async (tripId) => {
+        /** Тревожная кнопка — отправляет уведомление в Telegram поддержки. */
+        try {
+            const response = await fetch(`${API_URL}/trips/${tripId}/panic`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+            });
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (e) {
+            console.error('sendPanic error:', e);
+            return null;
+        }
+    },
 };

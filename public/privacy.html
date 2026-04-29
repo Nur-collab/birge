@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Политика конфиденциальности — Birge</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      padding: 2rem 1rem;
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
+    .logo-badge {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 900; color: white;
+    }
+    .logo h1 { font-size: 1.4rem; font-weight: 900; color: #111827; }
+    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; color: #111827; }
+    h3 { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 0.4rem; color: #374151; }
+    p { color: #4b5563; margin-bottom: 0.6rem; }
+    ul { color: #4b5563; padding-left: 1.4rem; margin-bottom: 0.6rem; }
+    ul li { margin-bottom: 0.3rem; }
+    .date { font-size: 0.82rem; color: #9ca3af; margin-bottom: 2rem; }
+    .section { background: white; border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; }
+    a { color: #10b981; }
+    .back-link { display: inline-block; margin-top: 1.5rem; color: #6b7280; font-size: 0.9rem; text-decoration: none; }
+    .back-link:hover { color: #10b981; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <div class="logo-badge">Б</div>
+    <h1>Birge</h1>
+  </div>
+
+  <h2>Политика конфиденциальности</h2>
+  <p class="date">Последнее обновление: апрель 2026 г.</p>
+
+  <div class="section">
+    <h3>1. Кто мы</h3>
+    <p>Birge — сервис совместных поездок в Бишкеке (Кыргызстан). Мы соединяем водителей и пассажиров для комфортного перемещения по городу.</p>
+  </div>
+
+  <div class="section">
+    <h3>2. Какие данные мы собираем</h3>
+    <ul>
+      <li><strong>Номер телефона</strong> — для входа и идентификации.</li>
+      <li><strong>Имя</strong> — отображается попутчикам.</li>
+      <li><strong>Фото профиля</strong> — загружается добровольно.</li>
+      <li><strong>Данные поездок</strong> — маршрут, время, дата (для поиска попутчиков).</li>
+      <li><strong>Telegram chat_id</strong> — если вы привязали аккаунт Telegram (для кодов и уведомлений).</li>
+      <li><strong>Данные машины</strong> — модель, цвет, номер (только для водителей, добровольно).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>3. Как мы используем данные</h3>
+    <ul>
+      <li>Поиск подходящих попутчиков по маршруту.</li>
+      <li>Отправка кодов авторизации через Telegram.</li>
+      <li>Напоминания о запланированных поездках.</li>
+      <li>Расчёт рейтинга доверия на основе отзывов.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>4. Кому мы передаём данные</h3>
+    <p>Мы <strong>не продаём</strong> ваши данные третьим лицам. Данные передаются только:</p>
+    <ul>
+      <li>Другим участникам вашей поездки (имя, фото, рейтинг, данные машины).</li>
+      <li>Сервисам хранения: Neon.tech (база данных), ImgBB (фото профиля).</li>
+      <li>Telegram (для отправки кодов и уведомлений через бота).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>5. Хранение и безопасность</h3>
+    <p>Данные хранятся в защищённой PostgreSQL базе на серверах Neon.tech (США, зашифровано). Аутентификация осуществляется через JWT-токены с подписью.</p>
+  </div>
+
+  <div class="section">
+    <h3>6. Ваши права</h3>
+    <ul>
+      <li>Удалить аккаунт — свяжитесь с нами через Telegram-бот.</li>
+      <li>Изменить имя и фото — в настройках приложения.</li>
+      <li>Запросить данные — напишите нам.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>7. Контакты</h3>
+    <p>По вопросам конфиденциальности: <a href="https://t.me/BirgeAuthBot">@BirgeAuthBot</a></p>
+  </div>
+
+  <a href="javascript:history.back()" class="back-link">← Назад</a>
+
+</body>
+</html>
