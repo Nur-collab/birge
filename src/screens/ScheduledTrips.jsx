@@ -4,12 +4,15 @@ import {
   Star, ShieldCheck, ChevronRight, RefreshCw, Trash2, ArrowRight
 } from 'lucide-react';
 import { api } from '../utils/api';
+import ReviewModal from '../components/ReviewModal';
 
 export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  // Пользователь которого оцениваем (driver.id + name для пассажира, или объект пассажира для водителя)
+  const [reviewTarget, setReviewTarget] = useState(null); // { id, name, photo }
 
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -186,6 +189,14 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
                             {p.is_verified && <ShieldCheck size={10} color="#10b981" />}
                           </div>
                         </div>
+                        {/* Водитель может оценить пассажира */}
+                        <button
+                          className="sched-review-btn"
+                          onClick={() => setReviewTarget(p)}
+                          title="Оценить пассажира"
+                        >
+                          <Star size={11} fill="#f59e0b" color="#f59e0b" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -223,6 +234,18 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
                 </div>
               )}
 
+              {/* Кнопка оценки водителя (для пассажира) */}
+              {trip.role === 'passenger' && trip.driver && (
+                <button
+                  className="sched-review-btn"
+                  onClick={() => setReviewTarget(trip.driver)}
+                  title="Оставить отзыв о водителе"
+                >
+                  <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                  Оценить водителя
+                </button>
+              )}
+
               {/* Действия */}
               <div className="sched-actions">
                 <button
@@ -243,6 +266,18 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ReviewModal: открывается при клике на кнопку оценки */}
+      {reviewTarget && (
+        <ReviewModal
+          partner={reviewTarget}
+          onSubmit={async (rating, text) => {
+            await api.submitReview(reviewTarget.id, rating, text);
+            setReviewTarget(null);
+          }}
+          onSkip={() => setReviewTarget(null)}
+        />
       )}
 
       <style>{`
@@ -270,6 +305,25 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
           font-size: 0.78rem;
           color: #9ca3af;
           margin: 0;
+        }
+        .sched-review-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 12px;
+          background: #fffbeb;
+          border: 1.5px solid #fcd34d;
+          border-radius: 20px;
+          color: #92400e;
+          font-size: 0.78rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-top: 6px;
+        }
+        .sched-review-btn:hover {
+          background: #fef3c7;
+          border-color: #f59e0b;
         }
         .sched-refresh-btn {
           width: 38px; height: 38px;

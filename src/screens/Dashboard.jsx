@@ -14,6 +14,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [seats, setSeats] = useState(3);
   const [price, setPrice] = useState(0); // цена за место в сомах (0 = бесплатно)
   const [geoLoading, setGeoLoading] = useState(false);
+  const [errors, setErrors] = useState({}); // валидационные ошибки формы
 
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -59,9 +60,23 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Валидация: поля "Откуда" и "Куда" не должны быть пустыми
+    const newErrors = {};
+    if (!from.trim()) newErrors.from = 'Укажите откуда';
+    if (!to.trim()) newErrors.to = 'Укажите куда';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
     onSearch({
       role,
-      from, to, time, date,
+      from: from.trim(),
+      to: to.trim(),
+      time,
+      date,
       seats: role === 'driver' ? seats : 1,
       price: role === 'driver' ? price : 0,
     });
@@ -136,11 +151,16 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
             <div className="route-field">
               <AddressInput
                 value={from}
-                onChange={setFrom}
+                onChange={(v) => { setFrom(v); setErrors(prev => ({ ...prev, from: undefined })); }}
                 placeholder={`${t('search.from')}...`}
-                iconColor="#10b981"
+                iconColor={errors.from ? '#ef4444' : '#10b981'}
                 name="from"
               />
+              {errors.from && (
+                <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '3px 0 0 2px' }}>
+                  {errors.from}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -158,11 +178,16 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
             <div className="route-field">
               <AddressInput
                 value={to}
-                onChange={setTo}
+                onChange={(v) => { setTo(v); setErrors(prev => ({ ...prev, to: undefined })); }}
                 placeholder={`${t('search.to')}...`}
-                iconColor="#f43f5e"
+                iconColor={errors.to ? '#ef4444' : '#f43f5e'}
                 name="to"
               />
+              {errors.to && (
+                <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '3px 0 0 2px' }}>
+                  {errors.to}
+                </p>
+              )}
             </div>
           </div>
         </div>

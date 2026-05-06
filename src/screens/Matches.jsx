@@ -2,9 +2,8 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Star, CheckCircle, Clock, Car, Send, Loader, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SkeletonCard from '../components/SkeletonCard';
-import { api } from '../utils/api';
+import { api, API_URL } from '../utils/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
 
 // Вспомогательные функции API для запросов
 const requestApi = {

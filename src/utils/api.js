@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
 
 const getAuthHeader = () => {
     const token = localStorage.getItem('birge_token');

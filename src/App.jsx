@@ -15,9 +15,9 @@ import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
 import ColdStartSplash from './components/ColdStartSplash';
 import ResumeTripBanner from './components/ResumeTripBanner';
-import { api } from './utils/api';
+import { api, API_URL } from './utils/api';
+import OfflineIndicator from './components/OfflineIndicator';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
 
 // --- Helpers для localStorage persistence ---
 const TRIP_STORAGE_KEY = 'birge_active_trip';
@@ -581,6 +581,7 @@ function App() {
         message={notification.message}
         onClose={() => setNotification({ ...notification, show: false })}
       />
+      <OfflineIndicator />
 
       {showReview && (
         <ReviewModal
@@ -635,7 +636,7 @@ function App() {
           {activeTrip ? <Map size={24} /> : <Calendar size={24} />}
           {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
           {activeTrip && unreadCount === 0 && <span className="badge dot" />}
-          <span>{activeTrip ? t('nav.create') : 'Поездки'}</span>
+          <span>{activeTrip ? 'В пути' : 'Поездки'}</span>
         </button>
         <button className={`nav-item ${(activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'active' : ''}`} onClick={() => handleTabChange('profile')}>
           <User size={24} />

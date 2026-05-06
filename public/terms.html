@@ -3,109 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Условия использования — Birge</title>
+  <title>Правила использования — Birge</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f9fafb;
+      background: #f0fdf4;
       color: #1f2937;
-      padding: 2rem 1rem;
-      max-width: 680px;
-      margin: 0 auto;
       line-height: 1.7;
+      padding: 2rem 1rem;
     }
-    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
-    .logo-badge {
-      width: 40px; height: 40px; border-radius: 12px;
+    .container { max-width: 680px; margin: 0 auto; }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 2rem; padding-bottom: 1.5rem;
+      border-bottom: 2px solid #d1fae5;
+    }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px;
       background: linear-gradient(135deg, #22c55e, #16a34a);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; font-weight: 900; color: white;
+      font-size: 1.4rem; font-weight: 900; color: white;
+      flex-shrink: 0;
     }
-    .logo h1 { font-size: 1.4rem; font-weight: 900; color: #111827; }
-    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; color: #111827; }
-    h3 { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 0.4rem; color: #374151; }
-    p { color: #4b5563; margin-bottom: 0.6rem; }
-    ul { color: #4b5563; padding-left: 1.4rem; margin-bottom: 0.6rem; }
-    ul li { margin-bottom: 0.3rem; }
-    .date { font-size: 0.82rem; color: #9ca3af; margin-bottom: 2rem; }
-    .section { background: white; border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; }
-    a { color: #10b981; }
-    .back-link { display: inline-block; margin-top: 1.5rem; color: #6b7280; font-size: 0.9rem; text-decoration: none; }
-    .back-link:hover { color: #10b981; }
+    h1 { font-size: 1.5rem; font-weight: 800; color: #111827; }
+    h2 { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 2rem 0 0.75rem; }
+    p, li { font-size: 0.95rem; color: #374151; }
+    ul { padding-left: 1.4rem; margin-top: 0.5rem; }
+    li { margin-bottom: 0.4rem; }
+    .updated { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 2.5rem; padding: 10px 20px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white; border: none; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <div class="logo">Б</div>
+      <div>
+        <h1>Правила использования</h1>
+        <p class="updated">Последнее обновление: май 2026</p>
+      </div>
+    </header>
 
-  <div class="logo">
-    <div class="logo-badge">Б</div>
-    <h1>Birge</h1>
-  </div>
+    <h2>1. Общие положения</h2>
+    <p>Birge — это сервис для поиска попутчиков в Кыргызстане. Используя приложение, вы соглашаетесь соблюдать настоящие правила.</p>
 
-  <h2>Условия использования</h2>
-  <p class="date">Последнее обновление: апрель 2026 г.</p>
-
-  <div class="section">
-    <h3>1. Общие положения</h3>
-    <p>Использование приложения Birge означает согласие с настоящими Условиями. Birge — платформа для поиска попутчиков, а не транспортная компания.</p>
-  </div>
-
-  <div class="section">
-    <h3>2. Регистрация</h3>
+    <h2>2. Требования к пользователям</h2>
     <ul>
-      <li>Для входа необходим номер телефона (+996).</li>
-      <li>Один аккаунт на один номер телефона.</li>
-      <li>Вы обязаны указать реальное имя.</li>
-      <li>Минимальный возраст: 16 лет.</li>
+      <li>Возраст от 18 лет.</li>
+      <li>Действительный номер телефона Кыргызстана (+996).</li>
+      <li>Достоверные данные о себе и своём автомобиле.</li>
     </ul>
-  </div>
 
-  <div class="section">
-    <h3>3. Правила для водителей</h3>
+    <h2>3. Правила для водителей</h2>
     <ul>
-      <li>Допускается не более 3 поездок в роли водителя в сутки.</li>
-      <li>Водитель обязан иметь действующее водительское удостоверение.</li>
-      <li>Запрещено требовать плату выше указанной при создании поездки.</li>
-      <li>Водитель несёт ответственность за безопасность пассажиров.</li>
+      <li>Действительные водительские права и регистрация ТС.</li>
+      <li>Соблюдение ПДД и обеспечение безопасности пассажиров.</li>
+      <li>Не более 3 поездок в сутки через платформу.</li>
+      <li>Своевременное уведомление пассажиров об отмене.</li>
     </ul>
-  </div>
 
-  <div class="section">
-    <h3>4. Правила для пассажиров</h3>
+    <h2>4. Правила для пассажиров</h2>
     <ul>
-      <li>Уважайте водителя и других пассажиров.</li>
-      <li>Приходите вовремя к месту посадки.</li>
-      <li>Не отменяйте поездку без предупреждения в чате.</li>
+      <li>Вежливое и уважительное поведение.</li>
+      <li>Своевременное уведомление водителя при отказе от поездки.</li>
+      <li>Оставление честных отзывов после поездки.</li>
     </ul>
-  </div>
 
-  <div class="section">
-    <h3>5. Запрещено</h3>
+    <h2>5. Запрещено</h2>
     <ul>
-      <li>Использовать Birge в коммерческих целях (такси).</li>
-      <li>Предоставлять ложные данные о себе или автомобиле.</li>
-      <li>Оскорблять других пользователей или нарушать их права.</li>
-      <li>Создавать несколько аккаунтов для обхода ограничений.</li>
+      <li>Оскорбления, угрозы, дискриминация.</li>
+      <li>Предоставление заведомо ложных данных.</li>
+      <li>Использование сервиса в коммерческих целях (такси).</li>
+      <li>Накрутка рейтинга и отзывов.</li>
     </ul>
+
+    <h2>6. Ограничение ответственности</h2>
+    <p>Birge является платформой-посредником и не несёт ответственности за действия пользователей во время поездки. При возникновении опасности используйте кнопку тревоги в приложении.</p>
+
+    <h2>7. Изменение правил</h2>
+    <p>Мы вправе обновлять правила. Об изменениях уведомляем через Telegram-бот или уведомления приложения.</p>
+
+    <h2>8. Контакты</h2>
+    <p>По вопросам: через Telegram-бота <strong>@BirgeAuthBot</strong>.</p>
+
+    <a href="/" class="back-btn">← Вернуться в приложение</a>
   </div>
-
-  <div class="section">
-    <h3>6. Ответственность</h3>
-    <p>Birge является платформой для знакомства водителей и пассажиров. Мы не несём ответственности за действия пользователей, задержки или ущерб, возникший в ходе поездки.</p>
-    <p>При нажатии тревожной кнопки мы уведомляем команду поддержки через Telegram, однако не гарантируем немедленного реагирования.</p>
-  </div>
-
-  <div class="section">
-    <h3>7. Рейтинг и блокировка</h3>
-    <p>Пользователи с рейтингом ниже 3.0 могут быть ограничены в функциях. Грубые нарушения правил влекут блокировку аккаунта без предупреждения.</p>
-  </div>
-
-  <div class="section">
-    <h3>8. Контакты</h3>
-    <p>Поддержка: <a href="https://t.me/BirgeAuthBot">@BirgeAuthBot</a></p>
-  </div>
-
-  <a href="javascript:history.back()" class="back-link">← Назад</a>
-
 </body>
 </html>

@@ -5,103 +5,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Политика конфиденциальности — Birge</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f9fafb;
+      background: #f0fdf4;
       color: #1f2937;
-      padding: 2rem 1rem;
-      max-width: 680px;
-      margin: 0 auto;
       line-height: 1.7;
+      padding: 2rem 1rem;
     }
-    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
-    .logo-badge {
-      width: 40px; height: 40px; border-radius: 12px;
+    .container { max-width: 680px; margin: 0 auto; }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 2rem; padding-bottom: 1.5rem;
+      border-bottom: 2px solid #d1fae5;
+    }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px;
       background: linear-gradient(135deg, #22c55e, #16a34a);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; font-weight: 900; color: white;
+      font-size: 1.4rem; font-weight: 900; color: white;
+      flex-shrink: 0;
     }
-    .logo h1 { font-size: 1.4rem; font-weight: 900; color: #111827; }
-    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; color: #111827; }
-    h3 { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 0.4rem; color: #374151; }
-    p { color: #4b5563; margin-bottom: 0.6rem; }
-    ul { color: #4b5563; padding-left: 1.4rem; margin-bottom: 0.6rem; }
-    ul li { margin-bottom: 0.3rem; }
-    .date { font-size: 0.82rem; color: #9ca3af; margin-bottom: 2rem; }
-    .section { background: white; border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; }
-    a { color: #10b981; }
-    .back-link { display: inline-block; margin-top: 1.5rem; color: #6b7280; font-size: 0.9rem; text-decoration: none; }
-    .back-link:hover { color: #10b981; }
+    h1 { font-size: 1.5rem; font-weight: 800; color: #111827; }
+    h2 { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 2rem 0 0.75rem; }
+    p, li { font-size: 0.95rem; color: #374151; }
+    ul { padding-left: 1.4rem; margin-top: 0.5rem; }
+    li { margin-bottom: 0.4rem; }
+    .updated { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
+    .highlight {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 12px 16px; margin: 0.75rem 0;
+    }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 2.5rem; padding: 10px 20px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white; border: none; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <div class="logo">Б</div>
+      <div>
+        <h1>Политика конфиденциальности</h1>
+        <p class="updated">Последнее обновление: май 2026</p>
+      </div>
+    </header>
 
-  <div class="logo">
-    <div class="logo-badge">Б</div>
-    <h1>Birge</h1>
-  </div>
+    <div class="highlight">
+      <strong>Кратко:</strong> мы собираем минимум данных, необходимых для работы сервиса. Мы не продаём ваши данные третьим лицам.
+    </div>
 
-  <h2>Политика конфиденциальности</h2>
-  <p class="date">Последнее обновление: апрель 2026 г.</p>
-
-  <div class="section">
-    <h3>1. Кто мы</h3>
-    <p>Birge — сервис совместных поездок в Бишкеке (Кыргызстан). Мы соединяем водителей и пассажиров для комфортного перемещения по городу.</p>
-  </div>
-
-  <div class="section">
-    <h3>2. Какие данные мы собираем</h3>
+    <h2>1. Какие данные мы собираем</h2>
     <ul>
-      <li><strong>Номер телефона</strong> — для входа и идентификации.</li>
-      <li><strong>Имя</strong> — отображается попутчикам.</li>
-      <li><strong>Фото профиля</strong> — загружается добровольно.</li>
-      <li><strong>Данные поездок</strong> — маршрут, время, дата (для поиска попутчиков).</li>
-      <li><strong>Telegram chat_id</strong> — если вы привязали аккаунт Telegram (для кодов и уведомлений).</li>
-      <li><strong>Данные машины</strong> — модель, цвет, номер (только для водителей, добровольно).</li>
+      <li><strong>Номер телефона</strong> — для аутентификации через Telegram-бот.</li>
+      <li><strong>Имя</strong> — отображается другим пользователям в поездках.</li>
+      <li><strong>Фото профиля</strong> — загружается вами добровольно через ImgBB.</li>
+      <li><strong>Данные автомобиля</strong> — модель, цвет, номер (для водителей).</li>
+      <li><strong>Маршруты поездок</strong> — откуда, куда, время, дата.</li>
+      <li><strong>Telegram chat_id</strong> — для отправки кодов и напоминаний.</li>
     </ul>
-  </div>
 
-  <div class="section">
-    <h3>3. Как мы используем данные</h3>
+    <h2>2. Как мы используем данные</h2>
     <ul>
-      <li>Поиск подходящих попутчиков по маршруту.</li>
-      <li>Отправка кодов авторизации через Telegram.</li>
-      <li>Напоминания о запланированных поездках.</li>
-      <li>Расчёт рейтинга доверия на основе отзывов.</li>
+      <li>Аутентификация и подтверждение личности.</li>
+      <li>Поиск и сопоставление попутчиков.</li>
+      <li>Отправка кодов входа и напоминаний о поездках через Telegram.</li>
+      <li>Отображение профиля другим участникам поездки.</li>
     </ul>
-  </div>
 
-  <div class="section">
-    <h3>4. Кому мы передаём данные</h3>
-    <p>Мы <strong>не продаём</strong> ваши данные третьим лицам. Данные передаются только:</p>
+    <h2>3. Хранение данных</h2>
+    <p>Данные хранятся на сервере Render.com (США). Сообщения чата сохраняются в базе данных на период активной поездки.</p>
+
+    <h2>4. Передача данных третьим лицам</h2>
     <ul>
-      <li>Другим участникам вашей поездки (имя, фото, рейтинг, данные машины).</li>
-      <li>Сервисам хранения: Neon.tech (база данных), ImgBB (фото профиля).</li>
-      <li>Telegram (для отправки кодов и уведомлений через бота).</li>
+      <li><strong>Telegram</strong> — для отправки кодов и уведомлений.</li>
+      <li><strong>ImgBB</strong> — для хранения фотографий профиля.</li>
+      <li><strong>Render.com</strong> — хостинг бэкенда.</li>
+      <li><strong>Vercel</strong> — хостинг фронтенда.</li>
     </ul>
-  </div>
+    <p>Мы не продаём и не передаём ваши данные рекламным платформам.</p>
 
-  <div class="section">
-    <h3>5. Хранение и безопасность</h3>
-    <p>Данные хранятся в защищённой PostgreSQL базе на серверах Neon.tech (США, зашифровано). Аутентификация осуществляется через JWT-токены с подписью.</p>
-  </div>
-
-  <div class="section">
-    <h3>6. Ваши права</h3>
+    <h2>5. Ваши права</h2>
     <ul>
-      <li>Удалить аккаунт — свяжитесь с нами через Telegram-бот.</li>
-      <li>Изменить имя и фото — в настройках приложения.</li>
-      <li>Запросить данные — напишите нам.</li>
+      <li>Запросить удаление аккаунта и всех связанных данных.</li>
+      <li>Обновить имя и фото профиля в любое время.</li>
+      <li>Выйти из аккаунта — JWT-токен удаляется из устройства.</li>
     </ul>
+
+    <h2>6. Безопасность</h2>
+    <p>Пароли не используются — вход только через одноразовые коды Telegram. JWT-токены имеют срок действия 7 дней.</p>
+
+    <h2>7. Контакты</h2>
+    <p>По вопросам конфиденциальности: Telegram <strong>@BirgeAuthBot</strong>.</p>
+
+    <a href="/" class="back-btn">← Вернуться в приложение</a>
   </div>
-
-  <div class="section">
-    <h3>7. Контакты</h3>
-    <p>По вопросам конфиденциальности: <a href="https://t.me/BirgeAuthBot">@BirgeAuthBot</a></p>
-  </div>
-
-  <a href="javascript:history.back()" class="back-link">← Назад</a>
-
 </body>
 </html>
