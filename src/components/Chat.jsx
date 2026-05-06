@@ -39,8 +39,12 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
 
     const connect = () => {
       if (intentionalClose) return;
-      const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com').replace('https://', 'wss://').replace('http://', 'ws://');
-      const wsUrl = `${WS_URL}/ws/chat/${tripId}/${currentUser.id}`;
+      // Берём JWT из localStorage — бэкенд проверит его перед подключением
+      const token = localStorage.getItem('birge_token') || '';
+      const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com')
+        .replace('https://', 'wss://')
+        .replace('http://', 'ws://');
+      const wsUrl = `${WS_URL}/ws/chat/${tripId}/${currentUser.id}?token=${encodeURIComponent(token)}`;
       const socket = new WebSocket(wsUrl);
       ws.current = socket;
 
