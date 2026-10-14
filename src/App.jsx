@@ -13,11 +13,13 @@ import InstallPWA from './components/InstallPWA';
 import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
-import ColdStartSplash from './components/ColdStartSplash';
 import ResumeTripBanner from './components/ResumeTripBanner';
-import { api, API_URL } from './utils/api';
+import { api } from './utils/api';
 import OfflineIndicator from './components/OfflineIndicator';
-
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from './firebase';
 
 // --- Helpers для localStorage persistence ---
 const TRIP_STORAGE_KEY = 'birge_active_trip';
@@ -31,7 +33,9 @@ const loadTrip = () => {
 
 function App() {
   const { t } = useTranslation();
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('birge_token'));
+  const [fbUser, setFbUser] = useState(null);  // Firebase Auth user
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
     // Восстанавливаем таб — если была активная поездка, переходим сразу на неё
     return loadTrip() ? 'trip' : 'home';
@@ -59,56 +63,36 @@ function App() {
     saveTrip(trip);
   }, []);
 
+  // Слушаем Firebase Auth — автоматически обрабатываем вход/выход
   useEffect(() => {
-    if (!isLoggedIn) return;
-
-    // Render free tier засыпает после простоя → даём 60 сек (20 попыток × 3 сек)
-    const MAX_ATTEMPTS = 20;
-    let attempts = 0;
-    let timer = null;
-
-    const tryLoad = async () => {
-      const user = await api.getCurrentUser();
-      if (user) {
-        setCurrentUser(user);
-        setBackendLoading(false);
-        if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission();
-        }
-        // Проверяем есть ли оставшаяся поездка (закрыл приложение во время поиска)
-        if (!loadTrip()) {
-          try {
-            const res = await fetch(`${API_URL}/users/me/active-trip`, {
-              headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-            });
-            const data = await res.json();
-            if (data?.found) setOrphanedTrip(data);
-          } catch (_) { }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setAuthLoading(false);
+      if (firebaseUser) {
+        setFbUser(firebaseUser);
+        setIsLoggedIn(true);
+        // Загружаем профиль из Firestore
+        const profile = await api.getCurrentUser();
+        if (profile) {
+          setCurrentUser(profile);
+          if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+          }
+          // Проверяем оставшуюся поездку
+          if (!loadTrip()) {
+            const activeRes = await api.getActiveTrip();
+            if (activeRes?.found) setOrphanedTrip(activeRes);
+          }
         }
       } else {
-        attempts++;
-        setBackendAttempt(attempts);
-
-        if (attempts === 1) {
-          // Показываем сплэш только после первой неудачной попытки
-          setBackendLoading(true);
-        }
-
-        if (attempts < MAX_ATTEMPTS) {
-          timer = setTimeout(tryLoad, 3000);
-        } else {
-          // 60 секунд прошло — токен невалиден или сервер недоступен
-          setBackendLoading(false);
-          handleLogout();
-        }
+        setFbUser(null);
+        setIsLoggedIn(false);
+        setCurrentUser(null);
       }
-    };
+    });
+    return () => unsubscribe();
+  }, []);
 
-    tryLoad();
-    return () => { if (timer) clearTimeout(timer); };
-  }, [isLoggedIn]);
-
-  // SSE-подписка на новые запросы для ВОДИТЕЛЯ
+  // Подписка на входящие запросы для ВОДИТЕЛЯ через Firestore onSnapshot (вместо SSE)
   // Активна пока водитель в поиске (myTripId) или в активной поездке (activeTrip)
   useEffect(() => {
     if (!currentUser || (!myTripId && !activeTrip)) return;
@@ -131,75 +115,39 @@ function App() {
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     };
 
-    /** Обработка одного входящего запроса */
-    const handleIncomingRequest = (req) => {
-      if (!req?.id || seenRequestIds.current.has(req.id)) return;
-      seenRequestIds.current.add(req.id);
-      setPendingRequestCount(prev => prev + 1);
-      setIncomingRequest(req);
-      playNotificationSound();
-      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-        new Notification('🙋 Новый запрос на поездку!', {
-          body: `${req.requester_name} хочет присоединиться`,
-          icon: '/pwa-192x192.png',
-        });
+    // Подписываемся на Firestore — мгновенно получаем новые pending-запросы
+    const unsubscribe = api.subscribeIncomingRequests((requests) => {
+      setPendingRequestCount(requests.length);
+      // Показываем модал для новых запросов
+      const newReq = requests.find(r => !seenRequestIds.current.has(r.id));
+      if (newReq) {
+        seenRequestIds.current.add(newReq.id);
+        setIncomingRequest(newReq);
+        playNotificationSound();
+        if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+          new Notification('🙋 Новый запрос на поездку!', {
+            body: `${newReq.requester_name} хочет присоединиться`,
+            icon: '/pwa-192x192.png',
+          });
+        }
       }
-    };
+    });
 
-    // --- SSE: мгновенные уведомления от бэкенда ---
-    let es = null;
-    const token = localStorage.getItem('birge_token');
-
-    if (token && typeof EventSource !== 'undefined') {
-      // EventSource не поддерживает кастомные заголовки → передаём токен через ?token=
-      es = new EventSource(
-        `${API_URL}/trip-requests/driver-events/${currentUser.id}?token=${encodeURIComponent(token)}`
-      );
-
-      es.addEventListener('new_request', (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          handleIncomingRequest(data);
-        } catch (_) { }
-      });
-
-      // При ошибке SSE браузер автоматически переподключается —
-      // fallback polling подхватит пропущенные запросы в период разрыва
-      es.onerror = () => { /* silent – fallback poll покрывает */ };
-    }
-
-    // --- Fallback polling: каждые 30 сек (резерв если SSE недоступен / прокси обрывает) ---
-    const fallbackPoll = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_URL}/trip-requests/incoming/`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-        });
-        const requests = await res.json();
-        // Обновляем счётчик на реальное число pending-запросов
-        setPendingRequestCount(requests.length);
-        // Показываем модал за новые запросы, пропущенные SSE
-        const newReq = requests.find(r => !seenRequestIds.current.has(r.id));
-        if (newReq) handleIncomingRequest(newReq);
-      } catch (_) { }
-    }, 30000);
-
-    return () => {
-      es?.close();
-      clearInterval(fallbackPoll);
-    };
+    return () => unsubscribe();
   }, [currentUser, myTripId, activeTrip]);
 
-  const handleLoggedIn = () => setIsLoggedIn(true);
+  const handleLoggedIn = () => {}; // onAuthStateChanged сам обновит состояние
 
-  const handleLogout = () => {
-    localStorage.removeItem('birge_token');
+  const handleLogout = async () => {
+    const { signOut } = await import('firebase/auth');
+    await signOut(auth);
     saveTrip(null);
     setCurrentUser(null);
-    setIsLoggedIn(false);
     setActiveTripState(null);
     setOrphanedTrip(null);
     setActiveTab('home');
   };
+
 
   /** Возобновить поиск: восстанавливаем myTripId и переходим на вкладку Матчей */
   const handleResumeOrphan = () => {
@@ -636,7 +584,7 @@ function App() {
           {activeTrip ? <Map size={24} /> : <Calendar size={24} />}
           {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
           {activeTrip && unreadCount === 0 && <span className="badge dot" />}
-          <span>{activeTrip ? 'В пути' : 'Поездки'}</span>
+          <span>{activeTrip ? t('nav.on_way') : t('nav.trips')}</span>
         </button>
         <button className={`nav-item ${(activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'active' : ''}`} onClick={() => handleTabChange('profile')}>
           <User size={24} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert, ExternalLink, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
@@ -364,6 +364,16 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           <span>{t('profile.settings')}</span>
           <ChevronRight size={20} color="#9ca3af" style={{ marginLeft: 'auto' }} />
         </button>
+        <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="menu-item" style={{ textDecoration: 'none' }}>
+          <FileText size={20} color="#4b5563" />
+          <span>{t('legal.terms')}</span>
+          <ExternalLink size={16} color="#9ca3af" style={{ marginLeft: 'auto' }} />
+        </a>
+        <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="menu-item" style={{ textDecoration: 'none' }}>
+          <ShieldCheck size={20} color="#4b5563" />
+          <span>{t('legal.privacy')}</span>
+          <ExternalLink size={16} color="#9ca3af" style={{ marginLeft: 'auto' }} />
+        </a>
         <button className="menu-item" style={{ color: '#f43f5e' }} onClick={() => {
           localStorage.removeItem('birge_token');
           if (onLogout) onLogout();

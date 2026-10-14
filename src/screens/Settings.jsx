@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Car, User, Camera, ShieldAlert, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Car, User, Camera, ShieldAlert, Globe, CreditCard, Smartphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
@@ -11,6 +11,8 @@ export default function Settings({ currentUser, onBack, onUpdate }) {
     car_model: currentUser?.car_model || '',
     car_color: currentUser?.car_color || '',
     car_plate: currentUser?.car_plate || '',
+    mbank_phone: currentUser?.mbank_phone || '',
+    elkart_number: currentUser?.elkart_number || '',
   });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -151,6 +153,46 @@ export default function Settings({ currentUser, onBack, onUpdate }) {
                 onChange={handleChange}
                 placeholder="01KG 123 ABC"
                 style={{ textTransform: 'uppercase' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Блок Реквизиты оплаты (MBank / Элкарт) */}
+        <div className="settings-section glass-panel">
+          <div className="section-title">
+            <CreditCard size={18} color="var(--primary)" />
+            <span>{t('settings.payment_info')}</span>
+          </div>
+
+          <div className="form-group">
+            <label>{t('settings.mbank_phone')}</label>
+            <div className="input-with-icon">
+              <Smartphone size={18} color="#9ca3af" />
+              <input
+                type="tel"
+                name="mbank_phone"
+                value={formData.mbank_phone}
+                onChange={handleChange}
+                placeholder="0555 123 456"
+              />
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '4px 0 0 2px' }}>
+              Пассажиры смогут в 1 клик перевести компенсацию за поездку в приложении MBank
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label>{t('settings.elkart_number')}</label>
+            <div className="input-with-icon">
+              <CreditCard size={18} color="#9ca3af" />
+              <input
+                type="text"
+                name="elkart_number"
+                value={formData.elkart_number}
+                onChange={handleChange}
+                placeholder="9417 0000 0000 0000"
+                maxLength={19}
               />
             </div>
           </div>

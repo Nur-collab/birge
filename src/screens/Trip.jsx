@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck, Car, Zap, Users, Calendar, XCircle } from 'lucide-react';
+import {
+  AlertTriangle, MapPin, Navigation, MessageCircle, Star, ShieldCheck,
+  Car, Zap, Users, Calendar, XCircle, CreditCard, Smartphone, Copy, Check
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import Chat from '../components/Chat';
@@ -13,6 +16,12 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const [seats, setSeats] = useState(trip?.seats || 3);
   const [cancelConfirm, setCancelConfirm] = useState(false); // шаг подтверждения отмены
   const [cancelling, setCancelling] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copiedElkart, setCopiedElkart] = useState(false);
+  const [driverPayment, setDriverPayment] = useState({
+    mbankPhone: trip?.user?.mbank_phone || trip?.driverMbankPhone || trip?.user?.phone || '',
+    elkartNumber: trip?.user?.elkart_number || trip?.driverElkartNumber || '',
+  });
 
   // Определяем: поездка запланирована (дата в будущем)?
   const today = new Date().toISOString().slice(0, 10);
@@ -46,6 +55,42 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
   }, [trip?.id, isDriver]);
+
+  // Загружаем актуальные реквизиты водителя (для пассажира)
+  useEffect(() => {
+    if (isDriver) return;
+    const driverId = trip?.user?.id || trip?.user_id;
+    if (driverId) {
+      api.getUserById(driverId).then(u => {
+        if (u) {
+          setDriverPayment(prev => ({
+            mbankPhone: u.mbank_phone || prev.mbankPhone || u.phone || '',
+            elkartNumber: u.elkart_number || prev.elkartNumber || '',
+          }));
+        }
+      }).catch(() => {});
+    }
+  }, [isDriver, trip?.user?.id, trip?.user_id]);
+
+  const handlePayMbank = () => {
+    const targetPhone = driverPayment.mbankPhone || trip?.user?.phone || '';
+    if (targetPhone) {
+      navigator.clipboard?.writeText(targetPhone);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3500);
+    }
+    // Открываем веб/приложение MBank
+    window.open('https://app.mbank.kg/', '_blank');
+  };
+
+  const handleCopyElkart = () => {
+    const targetCard = driverPayment.elkartNumber || '';
+    if (targetCard) {
+      navigator.clipboard?.writeText(targetCard);
+      setCopiedElkart(true);
+      setTimeout(() => setCopiedElkart(false), 3000);
+    }
+  };
 
   if (!trip) return null;
 
@@ -293,6 +338,103 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
         </h3>
         <Chat tripId={chatRoomId} currentUser={currentUser} partnerName={partnerName} onNewMessage={onNewMessage} />
       </div>
+
+      {/* Оплата / компенсация расходов (для пассажира) */}
+      {!isDriver && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+          border: '1.5px solid #a7f3d0',
+          borderRadius: 16,
+          padding: '14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0
+              }}>
+                <CreditCard size={18} />
+              </div>
+              <div>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#065f46' }}>
+                  {t('payment.title')}
+                </span>
+                <div style={{ fontSize: '0.75rem', color: '#047857' }}>
+                  {(trip.price_per_seat || trip.price || 0) > 0
+                    ? `${trip.price_per_seat || trip.price} сом ${t('payment.per_seat')}`
+                    : 'Бесплатно / добровольно'}
+                </div>
+              </div>
+            </div>
+            {(trip.price_per_seat || trip.price || 0) > 0 && (
+              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>
+                {trip.price_per_seat || trip.price} <span style={{ fontSize: '0.82rem' }}>сом</span>
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handlePayMbank}
+              style={{
+                flex: 1,
+                minWidth: 150,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '11px 14px',
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 12,
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(37,99,235,0.25)',
+              }}
+            >
+              <Smartphone size={16} />
+              <span>{copied ? t('payment.copied') : t('payment.mbank_btn')}</span>
+            </button>
+
+            {driverPayment.elkartNumber ? (
+              <button
+                type="button"
+                onClick={handleCopyElkart}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '11px 14px',
+                  background: 'white',
+                  color: '#065f46',
+                  border: '1.5px solid #a7f3d0',
+                  borderRadius: 12,
+                  fontSize: '0.86rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedElkart ? <Check size={16} color="#10b981" /> : <Copy size={16} />}
+                <span>{copiedElkart ? 'Скопировано!' : 'Элкарт'}</span>
+              </button>
+            ) : null}
+          </div>
+
+          {copied && (
+            <p style={{ fontSize: '0.78rem', color: '#047857', textAlign: 'center', margin: 0, fontWeight: 500 }}>
+              ✅ Номер {driverPayment.mbankPhone || trip?.user?.phone} скопирован в буфер! Открываем MBank...
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Действия */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

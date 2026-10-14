@@ -44,5 +44,23 @@ export default defineConfig({
                 ]
             }
         })
-    ]
+    ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Firebase SDK в отдельный чанк — кешируется независимо от кода приложения
+                    'firebase-app':       ['firebase/app'],
+                    'firebase-auth':      ['firebase/auth'],
+                    'firebase-firestore': ['firebase/firestore'],
+                    'firebase-storage':   ['firebase/storage'],
+                    'firebase-functions': ['firebase/functions'],
+                    'firebase-messaging': ['firebase/messaging'],
+                    // React в отдельный чанк
+                    'vendor-react':       ['react', 'react-dom'],
+                },
+            },
+        },
+        chunkSizeWarningLimit: 600,
+    },
 })

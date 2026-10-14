@@ -7,38 +7,54 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #f0fdf4;
       color: #1f2937;
       line-height: 1.7;
       padding: 2rem 1rem;
     }
-    .container { max-width: 680px; margin: 0 auto; }
+    .container { max-width: 720px; margin: 0 auto; background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
     header {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 14px;
       margin-bottom: 2rem; padding-bottom: 1.5rem;
       border-bottom: 2px solid #d1fae5;
     }
     .logo {
-      width: 44px; height: 44px; border-radius: 12px;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, #10b981, #059669);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; font-weight: 900; color: white;
+      font-size: 1.5rem; font-weight: 900; color: white;
       flex-shrink: 0;
     }
     h1 { font-size: 1.5rem; font-weight: 800; color: #111827; }
-    h2 { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 2rem 0 0.75rem; }
+    h2 { font-size: 1.15rem; font-weight: 700; color: #065f46; margin: 2rem 0 0.75rem; border-left: 3px solid #10b981; padding-left: 10px; }
     p, li { font-size: 0.95rem; color: #374151; }
     ul { padding-left: 1.4rem; margin-top: 0.5rem; }
-    li { margin-bottom: 0.4rem; }
+    li { margin-bottom: 0.5rem; }
     .updated { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
+    .badge-law {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+    }
     .back-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 2.5rem; padding: 10px 20px;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 2.5rem; padding: 12px 24px;
+      background: linear-gradient(135deg, #10b981, #059669);
       color: white; border: none; border-radius: 12px;
-      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
       text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .back-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(16,185,129,0.35);
     }
   </style>
 </head>
@@ -47,52 +63,48 @@
     <header>
       <div class="logo">Б</div>
       <div>
-        <h1>Правила использования</h1>
-        <p class="updated">Последнее обновление: май 2026</p>
+        <h1>Пользовательское соглашение Birge</h1>
+        <p class="updated">Действует с: май 2026 г. | Город Бишкек, Кыргызская Республика</p>
+        <span class="badge-law">Регулируется нормами законодательства Кыргызской Республики</span>
       </div>
     </header>
 
-    <h2>1. Общие положения</h2>
-    <p>Birge — это сервис для поиска попутчиков в Кыргызстане. Используя приложение, вы соглашаетесь соблюдать настоящие правила.</p>
+    <h2>1. Статус сервиса и некоммерческий характер</h2>
+    <p>
+      Платформа <strong>Birge</strong> (веб-версия <code>https://birge-5c900.web.app</code> и мобильное приложение) является информационно-коммуникационным сервисом для поиска попутчиков (карпулинг) в пределах города Бишкек и пригородов.
+    </p>
+    <p style="margin-top: 0.5rem;">
+      <strong>Важно:</strong> Birge не является службой такси или перевозчиком. Все поездки носят сугубо совместный, добровольный и взаимовыгодный характер. Любая оплата между участниками поездки является компенсацией фактических затрат водителя (топливо, амортизация) и не может являться источником коммерческой прибыли.
+    </p>
 
-    <h2>2. Требования к пользователям</h2>
+    <h2>2. Требования к участникам</h2>
     <ul>
-      <li>Возраст от 18 лет.</li>
-      <li>Действительный номер телефона Кыргызстана (+996).</li>
-      <li>Достоверные данные о себе и своём автомобиле.</li>
+      <li>Дееспособность и возраст не менее 18 лет.</li>
+      <li>Наличие подтверждённого абонентского номера мобильного оператора Кыргызской Республики (+996).</li>
+      <li>Прохождение верификации через официальный бот <strong>@BirgeAuthBot</strong>.</li>
+      <li>Для водителей: наличие действующего водительского удостоверения соответствующей категории и свидетельства о регистрации ТС (техпаспорт).</li>
     </ul>
 
-    <h2>3. Правила для водителей</h2>
+    <h2>3. Ограничения для предотвращения коммерческого извоза</h2>
     <ul>
-      <li>Действительные водительские права и регистрация ТС.</li>
-      <li>Соблюдение ПДД и обеспечение безопасности пассажиров.</li>
-      <li>Не более 3 поездок в сутки через платформу.</li>
-      <li>Своевременное уведомление пассажиров об отмене.</li>
+      <li>Установлен лимит: не более <strong>3 поездок в сутки</strong> для одного водителя.</li>
+      <li>Рекомендуемая стоимость за место рассчитывается исходя из среднего расхода топлива по городскому маршруту Бишкека.</li>
     </ul>
 
-    <h2>4. Правила для пассажиров</h2>
+    <h2>4. Оплата и взаиморасчёты (MBank / Элкарт)</h2>
+    <p>
+      Разделение расходов происходит напрямую между пассажиром и водителем с использованием доступных в Кыргызстане платёжных инструментов (MBank, Элкарт, наличные). Сервис Birge не взимает комиссию с транзакций и не является платёжным агентом.
+    </p>
+
+    <h2>5. Безопасность и ответственность</h2>
     <ul>
-      <li>Вежливое и уважительное поведение.</li>
-      <li>Своевременное уведомление водителя при отказе от поездки.</li>
-      <li>Оставление честных отзывов после поездки.</li>
+      <li>Каждый участник обязан соблюдать взаимное уважение, Правила дорожного движения КР и санитарные нормы.</li>
+      <li>В приложении встроена кнопка «Экстренная помощь / Тревога», отправляющая координаты поездки дежурным операторам и доверенным лицам.</li>
+      <li>Сервис Birge не несёт ответственности за сохранность багажа и имущественные споры между пользователями.</li>
     </ul>
 
-    <h2>5. Запрещено</h2>
-    <ul>
-      <li>Оскорбления, угрозы, дискриминация.</li>
-      <li>Предоставление заведомо ложных данных.</li>
-      <li>Использование сервиса в коммерческих целях (такси).</li>
-      <li>Накрутка рейтинга и отзывов.</li>
-    </ul>
-
-    <h2>6. Ограничение ответственности</h2>
-    <p>Birge является платформой-посредником и не несёт ответственности за действия пользователей во время поездки. При возникновении опасности используйте кнопку тревоги в приложении.</p>
-
-    <h2>7. Изменение правил</h2>
-    <p>Мы вправе обновлять правила. Об изменениях уведомляем через Telegram-бот или уведомления приложения.</p>
-
-    <h2>8. Контакты</h2>
-    <p>По вопросам: через Telegram-бота <strong>@BirgeAuthBot</strong>.</p>
+    <h2>6. Контакты службы поддержки</h2>
+    <p>Обращения и отзывы принимаются круглосуточно через Telegram-бот: <strong>@BirgeAuthBot</strong>.</p>
 
     <a href="/" class="back-btn">← Вернуться в приложение</a>
   </div>

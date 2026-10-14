@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@pbe/react-yandex-maps": "latest",
+    "firebase": "^10.12.0",
     "i18next": "^25.8.13",
     "lucide-react": "^0.300.0",
     "react": "^18.2.0",

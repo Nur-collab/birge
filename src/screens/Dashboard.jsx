@@ -1,14 +1,32 @@
 import React, { useState } from 'react';
-import { User, Car, Clock, Search, Navigation, ArrowRight, Calendar } from 'lucide-react';
+import { User, Car, Clock, Search, Navigation, ArrowRight, Calendar, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
+
+// Популярные жилые комплексы, микрорайоны и ориентиры Бишкека (СТРОГО БЕЗ МЕЖГОРОДА)
+const BISHKEK_HUBS = [
+  { name: 'ЖК «Ала-Арча»' },
+  { name: 'мкр. Асанбай' },
+  { name: 'мкр. Джал' },
+  { name: 'ЦУМ (Центр)' },
+  { name: 'ТРК Asia Mall' },
+  { name: 'мкр. Тунгуч' },
+  { name: 'мкр. Восток-5' },
+  { name: 'ЖК «Ихлас»' },
+  { name: 'ЖК «Елисейские Поля»' },
+  { name: 'Рынок Дордой' },
+  { name: 'Кудайберген' },
+  { name: 'ж/м Ак-Өргө' },
+  { name: 'Политех / БГУ' },
+];
 
 export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const { t } = useTranslation();
   const [role, setRole] = useState('passenger');
   const [from, setFrom] = useState('Жилмассив Ала-Арча');
   const [to, setTo] = useState('ЦУМ (Центр)');
+  const [tagTarget, setTagTarget] = useState('to'); // 'from' или 'to'
   const [time, setTime] = useState('08:15');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [seats, setSeats] = useState(3);
@@ -56,6 +74,16 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
       () => setGeoLoading(false),
       { timeout: 8000 }
     );
+  };
+
+  const handleTagClick = (placeName) => {
+    if (tagTarget === 'from') {
+      setFrom(placeName);
+      setErrors(prev => ({ ...prev, from: undefined }));
+    } else {
+      setTo(placeName);
+      setErrors(prev => ({ ...prev, to: undefined }));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -189,6 +217,43 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Быстрые теги (ЖК и микрорайоны Бишкека - БЕЗ МЕЖГОРОДА) */}
+        <div className="quick-tags-wrap">
+          <div className="quick-tags-header">
+            <span className="quick-tags-title">📍 {t('tags.title')}</span>
+            <div className="quick-tags-toggle">
+              <button
+                type="button"
+                className={`tag-target-btn ${tagTarget === 'from' ? 'active' : ''}`}
+                onClick={() => setTagTarget('from')}
+              >
+                {t('tags.target_from')}
+              </button>
+              <button
+                type="button"
+                className={`tag-target-btn ${tagTarget === 'to' ? 'active' : ''}`}
+                onClick={() => setTagTarget('to')}
+              >
+                {t('tags.target_to')}
+              </button>
+            </div>
+          </div>
+          <div className="quick-tags-list">
+            {BISHKEK_HUBS.map((hub) => (
+              <button
+                key={hub.name}
+                type="button"
+                className={`quick-tag-chip ${
+                  (tagTarget === 'from' ? from === hub.name : to === hub.name) ? 'selected' : ''
+                }`}
+                onClick={() => handleTagClick(hub.name)}
+              >
+                {hub.name}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -493,6 +558,87 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           background: #10b981;
           color: white;
           box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+        }
+
+        /* Quick Tags (Bishkek) */
+        .quick-tags-wrap {
+          margin-bottom: 0.9rem;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 10px 12px;
+        }
+        .quick-tags-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .quick-tags-title {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #475569;
+        }
+        .quick-tags-toggle {
+          display: flex;
+          background: #e2e8f0;
+          border-radius: 8px;
+          padding: 2px;
+          gap: 2px;
+        }
+        .tag-target-btn {
+          border: none;
+          background: transparent;
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #64748b;
+          padding: 3px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .tag-target-btn.active {
+          background: white;
+          color: #0f172a;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .quick-tags-list {
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          scrollbar-width: thin;
+        }
+        .quick-tags-list::-webkit-scrollbar {
+          height: 4px;
+        }
+        .quick-tags-list::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .quick-tag-chip {
+          white-space: nowrap;
+          border: 1px solid #cbd5e1;
+          background: white;
+          color: #334155;
+          font-size: 0.78rem;
+          font-weight: 600;
+          padding: 5px 10px;
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.18s;
+          flex-shrink: 0;
+        }
+        .quick-tag-chip:hover {
+          border-color: #10b981;
+          color: #059669;
+          background: #f0fdf4;
+        }
+        .quick-tag-chip.selected {
+          border-color: #10b981;
+          background: #10b981;
+          color: white;
+          box-shadow: 0 2px 6px rgba(16,185,129,0.3);
         }
       `}</style>
     </div>
