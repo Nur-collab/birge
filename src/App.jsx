@@ -403,7 +403,9 @@ function App() {
   const handleReviewSubmit = async (rating, text) => {
     if (activeTrip && activeTrip.user && currentUser) {
       await api.submitReview(activeTrip.user.id, rating, text);
-      await api.updateTripStatus(activeTrip.id, 'completed');
+      try {
+        await api.updateTripStatus(activeTrip.id, 'completed');
+      } catch (_) {}
       // Обновляем профиль текущего пользователя, чтобы новый рейтинг отобразился сразу
       const refreshed = await api.getCurrentUser();
       if (refreshed) setCurrentUser(refreshed);
@@ -417,7 +419,11 @@ function App() {
   };
 
   const handleReviewSkip = async () => {
-    if (activeTrip) await api.updateTripStatus(activeTrip.id, 'completed');
+    if (activeTrip) {
+      try {
+        await api.updateTripStatus(activeTrip.id, 'completed');
+      } catch (_) {}
+    }
     setShowReview(false);
     setActiveTrip(null);
     setActiveTab('home');

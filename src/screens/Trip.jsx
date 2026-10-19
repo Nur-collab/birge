@@ -28,8 +28,8 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const tripDate = trip?.date && trip.date !== 'Сегодня' ? trip.date : today;
   const isScheduled = tripDate > today;
 
-  // Данные: isDriver из trip.isDriver — определяется ДО useState с проверкой
-  const isDriver = trip?.isDriver || false;
+  // Данные: isDriver — определяется строго с проверкой авторства поездки
+  const isDriver = trip?.isDriver ?? (trip?.role === 'driver' && (!currentUser?.id || trip?.user_id === currentUser?.id || trip?.userId === currentUser?.id));
   const tripId = trip?.id;
 
   // Для пассажира: показываем карточку "Поездка принята" при первом входе
@@ -142,7 +142,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('birge_token')}`,
         },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({ status: isDriver ? 'cancelled' : 'passenger_cancelled' }),
       });
     } catch (_) {
       // Даже если запрос упал — всё равно закрываем экран

@@ -15,7 +15,7 @@ export default defineConfig({
                 // Избегаем кеширования больших ассетов
                 maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
             },
-            includeAssets: ['favicon.ico', 'apple-touch-icon.svg', 'mask-icon.svg'],
+            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'apple-touch-icon.svg', 'mask-icon.svg'],
             manifest: {
                 name: 'БИРГЕ — Попутные поездки',
                 short_name: 'БИРГЕ',
@@ -26,20 +26,28 @@ export default defineConfig({
                 orientation: 'portrait',
                 icons: [
                     {
-                        src: 'pwa-icon.svg',
+                        src: 'pwa-192x192.png',
                         sizes: '192x192',
-                        type: 'image/svg+xml'
+                        type: 'image/png',
+                        purpose: 'any'
+                    },
+                    {
+                        src: 'pwa-512x512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'any'
+                    },
+                    {
+                        src: 'pwa-512x512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
                     },
                     {
                         src: 'pwa-icon.svg',
-                        sizes: '512x512',
-                        type: 'image/svg+xml'
-                    },
-                    {
-                        src: 'mask-icon.svg',
                         sizes: '512x512',
                         type: 'image/svg+xml',
-                        purpose: 'any maskable'
+                        purpose: 'any'
                     }
                 ]
             }
@@ -48,16 +56,19 @@ export default defineConfig({
     build: {
         rollupOptions: {
             output: {
-                manualChunks: {
-                    // Firebase SDK в отдельный чанк — кешируется независимо от кода приложения
-                    'firebase-app':       ['firebase/app'],
-                    'firebase-auth':      ['firebase/auth'],
-                    'firebase-firestore': ['firebase/firestore'],
-                    'firebase-storage':   ['firebase/storage'],
-                    'firebase-functions': ['firebase/functions'],
-                    'firebase-messaging': ['firebase/messaging'],
-                    // React в отдельный чанк
-                    'vendor-react':       ['react', 'react-dom'],
+                manualChunks(id) {
+                    if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+                        return 'vendor-react';
+                    }
+                    if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
+                        return 'vendor-firebase';
+                    }
+                    if (id.includes('node_modules/@pbe')) {
+                        return 'vendor-maps';
+                    }
+                    if (id.includes('node_modules/lucide-react')) {
+                        return 'vendor-icons';
+                    }
                 },
             },
         },

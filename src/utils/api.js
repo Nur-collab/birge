@@ -289,6 +289,9 @@ export const api = {
       return { id: tripId, status: 'passenger_cancelled' };
     }
 
+    if (status === 'completed' && trip.userId !== user.uid) {
+      return { id: tripId, status: 'passenger_completed' };
+    }
     if (trip.userId !== user.uid) throw new Error('Only driver can change status');
     await updateDoc(tripRef, { status });
     return { id: tripId, status };
@@ -298,17 +301,39 @@ export const api = {
     const user = currentFbUser();
     if (!user) return { found: false };
     const today = new Date().toISOString().slice(0, 10);
+    // 1. Поездка, созданная текущим пользователем
     const snap = await getDocs(query(
       collection(db, 'trips'),
       where('userId', '==', user.uid),
-      where('status', '==', 'active'),
+      where('status', 'in', ['active', 'matched', 'in_progress']),
       where('date', '==', today),
       limit(1)
     ));
-    if (snap.empty) return { found: false };
-    const d = snap.docs[0];
-    const t = d.data();
-    return { found: true, trip_id: d.id, role: t.role, origin: t.origin, destination: t.destination, time: t.time, date: t.date, seats: t.seats || 3 };
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      const t = d.data();
+      return { found: true, trip_id: d.id, role: t.role, my_role: t.role, is_driver: t.role === 'driver', origin: t.origin, destination: t.destination, time: t.time, date: t.date, seats: t.seats || 3 };
+    }
+    // 2. Поездка водителя, где текущий пользователь принят как пассажир
+    const reqSnap = await getDocs(query(
+      collection(db, 'trip_requests'),
+      where('requesterId', '==', user.uid),
+      where('status', '==', 'accepted'),
+      limit(1)
+    ));
+    if (!reqSnap.empty) {
+      const req = reqSnap.docs[0].data();
+      if (req.tripId) {
+        const tripSnap = await getDoc(doc(db, 'trips', req.tripId));
+        if (tripSnap.exists()) {
+          const t = tripSnap.data();
+          if (['active', 'matched', 'in_progress'].includes(t.status)) {
+            return { found: true, trip_id: tripSnap.id, role: 'passenger', my_role: 'passenger', is_driver: false, origin: t.origin, destination: t.destination, time: t.time, date: t.date, seats: t.seats || 3, driverId: t.userId };
+          }
+        }
+      }
+    }
+    return { found: false };
   },
 
   /** Найти совпадения — клиентский Haversine напрямую через Firestore */
