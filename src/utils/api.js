@@ -619,28 +619,20 @@ export const api = {
 
   // ─── PANIC ────────────────────────────────────────────────
 
-  /** Кнопка тревоги — прямой вызов Telegram API */
+  /** Кнопка тревоги — через защищённый бэкенд API */
   sendPanic: async (tripId) => {
-    const user = currentFbUser();
-    if (!user) return { sent: false };
-    const TELEGRAM_TOKEN = '8730455344:AAHQ3rj5r9kaGVTdDZH0T0CtMpwHyegNqMo';
-    const ADMIN_CHAT_ID = '856120315';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
+    const token = localStorage.getItem('birge_token') || '';
     try {
-      const [userSnap, tripSnap] = await Promise.all([getDoc(userDoc(user.uid)), getDoc(doc(db, 'trips', tripId))]);
-      const u = userSnap.exists() ? userSnap.data() : {};
-      const t = tripSnap.exists() ? tripSnap.data() : {};
-      const text = `🚨 *ТРЕВОГА — Birge Carpooling*
-
-👤 *Пользователь:* ${u.name || 'Неизвестен'}
-📞 *Телефон:* ${u.phone || user.phoneNumber || 'Неизвестен'}
-🚗 *Маршрут:* ${t.origin || '?'} → ${t.destination || '?'}
-🕐 *Время:* ${t.time || '?'}${t.date ? '  |  *Дата:* '+t.date : ''}`;
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      const res = await fetch(`${API_URL}/trips/${tripId}/panic`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text, parse_mode: 'Markdown' }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
-      return { sent: true };
+      const data = await res.json();
+      return { sent: Boolean(data?.sent) };
     } catch (e) {
       console.error('[sendPanic]', e);
       return { sent: false };

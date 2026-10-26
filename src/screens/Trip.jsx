@@ -24,7 +24,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   });
 
   // Определяем: поездка запланирована (дата в будущем)?
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const tripDate = trip?.date && trip.date !== 'Сегодня' ? trip.date : today;
   const isScheduled = tripDate > today;
 
@@ -115,7 +115,8 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const sendGoingMessage = () => {
     const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com')
       .replace('https://', 'wss://').replace('http://', 'ws://');
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${chatRoomId}/${currentUser.id}`);
+    const token = localStorage.getItem('birge_token') || '';
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${chatRoomId}/${currentUser.id}?token=${token}`);
     ws.onopen = () => {
       ws.send(JSON.stringify({ text: `🚗 Выезжаю! Буду через ~5 минут. Выходите ✅` }));
       setTimeout(() => ws.close(), 500);
@@ -136,11 +137,12 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
     setCancelling(true);
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
+      const token = localStorage.getItem('birge_token') || '';
       await fetch(`${API_URL}/trips/${trip.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('birge_token')}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status: isDriver ? 'cancelled' : 'passenger_cancelled' }),
       });
