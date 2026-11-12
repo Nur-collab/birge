@@ -3,30 +3,21 @@ import { Star, CheckCircle, Clock, Car, Send, Loader, Calendar } from 'lucide-re
 import { useTranslation } from 'react-i18next';
 import SkeletonCard from '../components/SkeletonCard';
 import { api, API_URL } from '../utils/api';
+import { localDateStr } from '../utils/date';
 
 
 // Вспомогательные функции API для запросов
 const requestApi = {
   sendRequest: async (tripId, requesterTripId, driverId) => {
-    // requester_id берётся из JWT на бэкенде — не передаём
-    const res = await fetch(`${API_URL}/trip-requests/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-      body: JSON.stringify({ trip_id: tripId, requester_trip_id: requesterTripId, driver_id: driverId }),
-    });
-    return res.json();
+    return api.sendTripRequest(tripId, requesterTripId, driverId);
   },
   checkStatus: async (tripId) => {
-    // requester_id берётся из JWT — не передаём в пути
-    const res = await fetch(`${API_URL}/trip-requests/status/${tripId}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-    });
-    return res.json();
+    return api.checkRequestStatus(tripId);
   }
 };
 
-const today = new Date().toISOString().slice(0, 10);
-const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+const today = localDateStr();
+const tomorrow = localDateStr(1);
 
 const formatChipLabel = (d) => {
   if (!d) return 'Без даты';
@@ -39,8 +30,15 @@ const formatChipLabel = (d) => {
 export default function Matches({ matches = [], setMatches, onConnect, onCancel, isLoading = false, searchCriteria, currentUser, myTripId }) {
   const { t } = useTranslation();
   const [requestStatus, setRequestStatus] = useState({}); // { [tripId]: 'pending'|'accepted'|'declined' }
+  const [requestError, setRequestError] = useState('');
   const connectedRef = useRef(false); // защита от повторного вызова onConnect
   const [activeDateFilter, setActiveDateFilter] = useState(searchCriteria?.date || null);
+
+  // Refs, чтобы SSE-эффект не пересоздавался при каждом обновлении списка матчей.
+  const matchesRef = useRef(matches);
+  const onConnectRef = useRef(onConnect);
+  useEffect(() => { matchesRef.current = matches; }, [matches]);
+  useEffect(() => { onConnectRef.current = onConnect; }, [onConnect]);
 
   // Синхронизируем фильтр при смене критериев поиска
   useEffect(() => {
@@ -97,7 +95,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
   // Для пассажира: SSE (мгновенные уведомления) + fallback polling каждые 15 сек
   useEffect(() => {
-    if (!currentUser || searchCriteria?.role !== 'passenger' || matches.length === 0) return;
+    if (!currentUser || searchCriteria?.role !== 'passenger') return;
     connectedRef.current = false;
 
     const handleStatusUpdate = (st) => {
@@ -105,9 +103,13 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
       setRequestStatus(prev => ({ ...prev, [st.trip_id]: st.status }));
       if (st.status === 'accepted' && !connectedRef.current) {
         connectedRef.current = true;
-        const matchedTrip = matches.find(m => m.id === st.trip_id) || matches[0];
-        const chatTripId = st.trip_id || matchedTrip.id;
-        onConnect({ ...matchedTrip, id: chatTripId, requestInfo: st });
+        const currentMatches = matchesRef.current || [];
+        const matchedTrip = currentMatches.find(m => m.id === st.trip_id) || currentMatches[0];
+        const chatTripId = st.trip_id || matchedTrip?.id;
+        if (chatTripId) {
+          Promise.resolve(onConnectRef.current({ ...matchedTrip, id: chatTripId, requestInfo: st }))
+            .catch(() => { connectedRef.current = false; });
+        }
       }
     };
 
@@ -126,8 +128,15 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
           // Обрабатываем SSE-событие завершения поездки водителем
           if (data?.event === 'trip_completed' && !connectedRef.current) {
             connectedRef.current = true;
-            const matchedTrip = matches.find(m => m.id === data.trip_id) || matches[0];
-            if (matchedTrip) onConnect({ ...matchedTrip, id: data.trip_id, requestInfo: { status: 'completed', trip_id: data.trip_id } });
+            const currentMatches = matchesRef.current || [];
+            const matchedTrip = currentMatches.find(m => m.id === data.trip_id) || currentMatches[0];
+            if (matchedTrip) {
+              Promise.resolve(onConnectRef.current({
+                ...matchedTrip,
+                id: data.trip_id,
+                requestInfo: { status: 'completed', trip_id: data.trip_id },
+              })).catch(() => { connectedRef.current = false; });
+            }
           }
         } catch (_) { }
       });
@@ -140,7 +149,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
     // --- Fallback polling: каждые 15 сек (резервный вариант если SSE не работает) ---
     const pollReqStatus = setInterval(async () => {
       if (connectedRef.current) return; // уже подключились через SSE
-      for (const trip of matches) {
+      for (const trip of (matchesRef.current || [])) {
         try {
           const st = await requestApi.checkStatus(trip.id);
           handleStatusUpdate(st);
@@ -152,10 +161,11 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
       es?.close();
       clearInterval(pollReqStatus);
     };
-  }, [currentUser, matches, searchCriteria]);
+  }, [currentUser, searchCriteria]);
 
   const handleSendRequest = async (trip) => {
     if (!currentUser || !myTripId) return;
+    setRequestError('');
     setRequestStatus(prev => ({ ...prev, [trip.id]: 'sending' }));
     try {
       // requester_id берётся из JWT — не передаём
@@ -163,6 +173,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
       setRequestStatus(prev => ({ ...prev, [trip.id]: 'pending' }));
     } catch (e) {
       setRequestStatus(prev => ({ ...prev, [trip.id]: null }));
+      setRequestError(e.message);
     }
   };
 
@@ -212,6 +223,11 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
   return (
     <div className="matches screen-content">
+      {requestError && (
+        <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', marginBottom: 10 }}>
+          {requestError}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <h2 style={{ color: 'var(--dark)', margin: 0 }}>
           {isDriver ? 'Запросы пассажиров' : 'Найденные водители'}

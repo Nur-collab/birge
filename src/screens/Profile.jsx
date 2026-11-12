@@ -56,17 +56,18 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
   const handleVerify = async () => {
     setVerifyLoading(true);
     setVerifyResult(null);
-    const result = await api.verifyAccount();
-    if (!result) {
-      setVerifyResult({ status: 'error', message: 'Ошибка соединения. Попробуйте позже.' });
-    } else {
-      setVerifyResult(result);
+    try {
+      const result = await api.verifyAccount();
+      setVerifyResult(result || { status: 'error', message: 'Ошибка соединения. Попробуйте позже.' });
       // Обновляем локальный стейт пользователя если верифицировали
-      if (result.status === 'verified') {
+      if (result?.status === 'verified') {
         setUser(prev => prev ? { ...prev, is_verified: true } : prev);
       }
+    } catch (e) {
+      setVerifyResult({ status: 'error', message: e.message || 'Ошибка соединения. Попробуйте позже.' });
+    } finally {
+      setVerifyLoading(false);
     }
-    setVerifyLoading(false);
   };
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
       api.getCurrentUser().then(data => {
         if (data) setUser(data);
         else setError(true);
-      });
+      }).catch(() => setError(true));
     }
   }, [userProp]);
 
@@ -89,7 +90,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         <p style={{ color: '#6b7280', textAlign: 'center' }}>Бэкенд недоступен.<br />Подождите немного и повторите попытку.</p>
         <button className="primary-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => {
           setError(false);
-          api.getCurrentUser().then(data => { if (data) setUser(data); else setError(true); });
+          api.getCurrentUser().then(data => { if (data) setUser(data); else setError(true); }).catch(() => setError(true));
         }}>
           Повторить
         </button>

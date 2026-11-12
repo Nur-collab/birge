@@ -14,12 +14,9 @@ import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
 import ResumeTripBanner from './components/ResumeTripBanner';
-import { api } from './utils/api';
+import { api, tokenStorage } from './utils/api';
+import { localDateStr } from './utils/date';
 import OfflineIndicator from './components/OfflineIndicator';
-import { auth } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
 
 // --- Helpers для localStorage persistence ---
 const TRIP_STORAGE_KEY = 'birge_active_trip';
@@ -33,9 +30,10 @@ const loadTrip = () => {
 
 function App() {
   const { t } = useTranslation();
-  const [fbUser, setFbUser] = useState(null);  // Firebase Auth user
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
+  const [authRetry, setAuthRetry] = useState(0);
   const [activeTab, setActiveTab] = useState(() => {
     // Восстанавливаем таб — если была активная поездка, переходим сразу на неё
     return loadTrip() ? 'trip' : 'home';
@@ -45,8 +43,6 @@ function App() {
   const [activeTrip, setActiveTripState] = useState(loadTrip);
   const [notification, setNotification] = useState({ show: false, title: '', message: '' });
   const [currentUser, setCurrentUser] = useState(null);
-  const [backendLoading, setBackendLoading] = useState(false); // true пока бэкенд просыпается
-  const [backendAttempt, setBackendAttempt] = useState(0);    // номер текущей попытки (для прогресс-бара)
   const [orphanedTrip, setOrphanedTrip] = useState(null);     // поездка оставшаяся active после закрытия приложения
   const [unreadCount, setUnreadCount] = useState(0);
   const [showReview, setShowReview] = useState(false);
@@ -63,36 +59,83 @@ function App() {
     saveTrip(trip);
   }, []);
 
-  // Слушаем Firebase Auth — автоматически обрабатываем вход/выход
+  // Колбэк из Chat — новое входящее сообщение
+  const handleNewChatMessage = useCallback(() => {
+    setActiveTab(current => {
+      if (current !== 'trip') {
+        setUnreadCount(n => n + 1);
+      }
+      return current;
+    });
+  }, []);
+
+  // Инициализация авторизации по JWT-токену.
+  // Сетевая ошибка НЕ должна разлогинивать: токен остаётся, показываем retry.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setAuthLoading(false);
-      if (firebaseUser) {
-        setFbUser(firebaseUser);
-        setIsLoggedIn(true);
-        // Загружаем профиль из Firestore
+    let cancelled = false;
+
+    const initAuth = async () => {
+      setAuthError(false);
+      const token = tokenStorage.get();
+      if (!token) {
+        setAuthLoading(false);
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        return;
+      }
+      try {
         const profile = await api.getCurrentUser();
+        if (cancelled) return;
         if (profile) {
           setCurrentUser(profile);
+          setIsLoggedIn(true);
           if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
           }
-          // Проверяем оставшуюся поездку
           if (!loadTrip()) {
-            const activeRes = await api.getActiveTrip();
-            if (activeRes?.found) setOrphanedTrip(activeRes);
+            try {
+              const activeRes = await api.getActiveTrip();
+              if (!cancelled && activeRes?.found) setOrphanedTrip(activeRes);
+            } catch (_) {
+              // Активная поездка не критична для входа.
+            }
           }
+        } else {
+          tokenStorage.clear();
+          setIsLoggedIn(false);
+          setCurrentUser(null);
         }
-      } else {
-        setFbUser(null);
-        setIsLoggedIn(false);
-        setCurrentUser(null);
+      } catch (e) {
+        if (cancelled) return;
+        if (e.status === 401 || e.status === 403) {
+          tokenStorage.clear();
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        } else {
+          setAuthError(true);
+        }
+      } finally {
+        if (!cancelled) setAuthLoading(false);
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    };
 
-  // Подписка на входящие запросы для ВОДИТЕЛЯ через Firestore onSnapshot (вместо SSE)
+    initAuth();
+
+    const handleUnauthorized = () => {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      saveTrip(null);
+      setActiveTripState(null);
+    };
+
+    window.addEventListener('birge:unauthorized', handleUnauthorized);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('birge:unauthorized', handleUnauthorized);
+    };
+  }, [authRetry]);
+
+  // Подписка на входящие запросы для ВОДИТЕЛЯ через опрос бэкенда
   // Активна пока водитель в поиске (myTripId) или в активной поездке (activeTrip)
   useEffect(() => {
     if (!currentUser || (!myTripId && !activeTrip)) return;
@@ -115,7 +158,7 @@ function App() {
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     };
 
-    // Подписываемся на Firestore — мгновенно получаем новые pending-запросы
+    // Подписываемся на бэкенд — получаем новые pending-запросы
     const unsubscribe = api.subscribeIncomingRequests((requests) => {
       setPendingRequestCount(requests.length);
       // Показываем модал для новых запросов
@@ -136,15 +179,24 @@ function App() {
     return () => unsubscribe();
   }, [currentUser, myTripId, activeTrip]);
 
-  const handleLoggedIn = () => {}; // onAuthStateChanged сам обновит состояние
+  const handleLoggedIn = (user) => {
+    if (!user) return;
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+    if (!loadTrip()) {
+      api.getActiveTrip().then((res) => {
+        if (res?.found) setOrphanedTrip(res);
+      }).catch(() => {});
+    }
+  };
 
   const handleLogout = async () => {
-    const { signOut } = await import('firebase/auth');
-    await signOut(auth);
+    api.logout();
     saveTrip(null);
     setCurrentUser(null);
     setActiveTripState(null);
     setOrphanedTrip(null);
+    setIsLoggedIn(false);
     setActiveTab('home');
   };
 
@@ -167,22 +219,44 @@ function App() {
   /** Удалить оставшуюся поездку из БД, скрыть баннер */
   const handleDiscardOrphan = async () => {
     if (!orphanedTrip) return;
-    setOrphanedTrip(null);
     try {
-      await fetch(`${API_URL}/trips/${orphanedTrip.trip_id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-      });
-    } catch (_) { }
+      await api.cancelTrip(orphanedTrip.trip_id);
+      setOrphanedTrip(null);
+    } catch (e) {
+      showNotification('Ошибка', e.message);
+    }
   };
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
+        <div className="login-logo-badge" style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800 }}>Б</div>
+        <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>Проверяем сессию...</p>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
+        <div style={{ fontSize: '2.5rem' }}>📡</div>
+        <h2 style={{ margin: 0, color: '#111827' }}>Нет связи с сервером</h2>
+        <p style={{ color: '#6b7280', fontSize: '0.9rem', maxWidth: 340 }}>
+          Не удалось загрузить профиль. Проверьте интернет и повторите — сессия сохранена.
+        </p>
+        <button
+          className="primary-btn"
+          style={{ width: 'auto', padding: '11px 28px' }}
+          onClick={() => { setAuthLoading(true); setAuthRetry(n => n + 1); }}
+        >
+          Повторить
+        </button>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <Login onLoggedIn={handleLoggedIn} />;
-  }
-
-  // Бэкенд ещё просыпается — показываем красивый сплэш вместо белого экрана
-  if (backendLoading) {
-    return <ColdStartSplash attempt={backendAttempt} maxAttempts={20} />;
   }
 
   const showNotification = (title, message) => {
@@ -197,16 +271,6 @@ function App() {
     setActiveTab(tab);
     if (tab === 'trip') setUnreadCount(0); // сброс непрочитанных при открытии чата
   };
-
-  // Колбэк из Chat — новое входящее сообщение
-  const handleNewChatMessage = useCallback(() => {
-    setActiveTab(current => {
-      if (current !== 'trip') {
-        setUnreadCount(n => n + 1);
-      }
-      return current;
-    });
-  }, []);
 
   const handleSearch = async (tripData) => {
     if (!currentUser) return showNotification('Ошибка', 'Не удалось загрузить пользователя');
@@ -293,7 +357,12 @@ function App() {
   const handleCancelSearch = async () => {
     // Удаляем поездку из БД, чтобы не путала другим пользователям
     if (myTripId) {
-      await api.cancelTrip(myTripId);
+      try {
+        await api.cancelTrip(myTripId);
+      } catch (e) {
+        showNotification('Ошибка', e.message);
+        return;
+      }
     }
     setMatches([]);
     setIsSearching(false);
@@ -304,14 +373,15 @@ function App() {
 
   const handleAcceptRequest = async (requestId, tripId, requesterId, requesterTripId) => {
     const acceptedReq = incomingRequest; // сохраняем до сброса
+    try {
+      await api.respondToRequest(requestId, 'accept');
+    } catch (e) {
+      showNotification('Ошибка', e.message);
+      return;
+    }
+
     setIncomingRequest(null);
     setPendingRequestCount(prev => Math.max(0, prev - 1));
-
-    await fetch(`${API_URL}/trip-requests/${requestId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-      body: JSON.stringify({ status: 'accepted' })
-    });
 
     // Если водитель уже в поездке — просто приняли запрос, polling обновит список
     if (activeTrip) {
@@ -340,23 +410,23 @@ function App() {
   };
 
   const handleDeclineRequest = async (requestId) => {
+    try {
+      await api.respondToRequest(requestId, 'decline');
+    } catch (e) {
+      showNotification('Ошибка', e.message);
+      return;
+    }
     setIncomingRequest(null);
     setPendingRequestCount(prev => Math.max(0, prev - 1));
-    await fetch(`${API_URL}/trip-requests/${requestId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('birge_token')}` },
-      body: JSON.stringify({ status: 'declined' })
-    });
   };
 
   const handleConnect = async (trip) => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr();
     const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : todayStr;
     const isScheduled = tripDate > todayStr;
-    // Для запланированных поездок оставляем статус 'scheduled', не меняем на 'matched'
-    if (!isScheduled) {
-      await api.updateTripStatus(trip.id, 'matched');
-    }
+    // Статус поездки меняет только бэкенд: matched — когда заняты все места,
+    // scheduled — для будущей даты. Иначе 3-местная машина закрывалась бы
+    // после первого же пассажира.
     setActiveTrip({ ...trip, participants: 2, date: trip.date || 'Сегодня', isScheduled });
     setActiveTab('trip');
     setUnreadCount(0);
@@ -369,13 +439,11 @@ function App() {
   // При acceptе пассажир тоже получает данные машины водителя через requestInfo
   const handleConnectPassenger = async (trip) => {
     const { requestInfo } = trip;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr();
     const tripDate = trip.date && trip.date !== 'Сегодня' ? trip.date : todayStr;
     const isScheduled = tripDate > todayStr;
-    // Для запланированных поездок НЕ меняем статус на 'matched'
-    if (!isScheduled) {
-      await api.updateTripStatus(trip.id, 'matched');
-    }
+    // Пассажир не имеет права менять статус поездки водителя — это делает
+    // бэкенд атомарно при accept. Здесь только открываем экран поездки.
     setActiveTrip({
       ...trip,
       participants: 2,
@@ -401,14 +469,23 @@ function App() {
   };
 
   const handleReviewSubmit = async (rating, text) => {
-    if (activeTrip && activeTrip.user && currentUser) {
-      await api.submitReview(activeTrip.user.id, rating, text);
+    if (activeTrip?.user?.id && currentUser) {
+      // Сначала фиксируем завершение: бэкенд разрешает отзыв только по
+      // завершённой заявке.
       try {
         await api.updateTripStatus(activeTrip.id, 'completed');
       } catch (_) {}
-      // Обновляем профиль текущего пользователя, чтобы новый рейтинг отобразился сразу
-      const refreshed = await api.getCurrentUser();
-      if (refreshed) setCurrentUser(refreshed);
+      try {
+        await api.submitReview(activeTrip.user.id, rating, text, activeTrip.id);
+      } catch (e) {
+        showNotification('Ошибка', e.message);
+        return;
+      }
+      try {
+        // Обновляем профиль, чтобы новый рейтинг отобразился сразу
+        const refreshed = await api.getCurrentUser();
+        if (refreshed) setCurrentUser(refreshed);
+      } catch (_) {}
     }
     // Закрываем через 1.5 сек после успешной отправки
     setTimeout(() => {
@@ -428,6 +505,12 @@ function App() {
     setActiveTrip(null);
     setActiveTab('home');
     showNotification('Поездка завершена', 'До следующей встречи!');
+  };
+
+  const handleTripCancelled = () => {
+    setActiveTrip(null);
+    setActiveTab('home');
+    showNotification('Поездка отменена', 'Вы можете найти нового попутчика.');
   };
 
   const renderScreen = () => {
@@ -458,10 +541,15 @@ function App() {
               onNewMessage={handleNewChatMessage}
               onPanic={async () => {
                 // Отправляем реальный тревожный сигнал в Telegram поддержки
-                await api.sendPanic(activeTrip?.id);
-                showNotification('🚨 Тревога отправлена!', 'Команда поддержки уведомлена через Telegram.');
+                const result = await api.sendPanic(activeTrip?.id);
+                if (result?.sent) {
+                  showNotification('🚨 Тревога отправлена!', 'Команда поддержки уведомлена через Telegram.');
+                } else {
+                  showNotification('Не удалось отправить тревогу', result?.reason || 'Проверьте связь или позвоните 102.');
+                }
               }}
               onFinish={handleFinishTrip}
+              onCancelled={handleTripCancelled}
             />
           );
         }
@@ -488,7 +576,7 @@ function App() {
                   photo: scheduledTrip.driver.photo,
                   trust_rating: scheduledTrip.driver.trust_rating,
                   is_verified: scheduledTrip.driver.is_verified,
-                } : null,
+                } : (scheduledTrip.passengers?.[0] || null),
                 driverCarModel: scheduledTrip.driver?.car_model,
                 driverCarPlate: scheduledTrip.driver?.car_plate,
                 driverCarColor: scheduledTrip.driver?.car_color,

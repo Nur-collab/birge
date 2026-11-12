@@ -4,6 +4,7 @@ import {
   Star, ShieldCheck, ChevronRight, RefreshCw, Trash2, ArrowRight
 } from 'lucide-react';
 import { api } from '../utils/api';
+import { localDateStr } from '../utils/date';
 import ReviewModal from '../components/ReviewModal';
 
 export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
@@ -11,11 +12,12 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
-  // Пользователь которого оцениваем (driver.id + name для пассажира, или объект пассажира для водителя)
-  const [reviewTarget, setReviewTarget] = useState(null); // { id, name, photo }
+  const [error, setError] = useState('');
+  // Пользователь, которого оцениваем; для проверки на бэкенде храним trip_id.
+  const [reviewTarget, setReviewTarget] = useState(null); // { id, name, photo, trip_id }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const today = localDateStr();
+  const tomorrow = localDateStr(1);
 
   const formatDate = (d) => {
     if (!d) return '—';
@@ -35,10 +37,16 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
 
   const load = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
-    const data = await api.getScheduledTrips();
-    setTrips(data);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const data = await api.getScheduledTrips();
+      setTrips(Array.isArray(data) ? data : []);
+      setError('');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -49,11 +57,9 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
   }, [load]);
 
   const handleCancel = async (trip) => {
-    // Водитель отменяет свою поездку (trip_id),
-    // пассажир отменяет свой запрос (requester_trip_id).
-    const idToCancel = trip.role === 'driver' ? trip.trip_id : trip.requester_trip_id;
-    if (!idToCancel) return;
-
+    // Водитель отменяет свою поездку, пассажир — своё участие в поездке
+    // водителя. Удалять requester_trip_id нельзя: это лишь поисковая
+    // поездка пассажира, а принятая заявка останется на сервере.
     const confirmMsg =
       trip.role === 'driver'
         ? 'Отменить запланированную поездку? Все пассажиры будут уведомлены.'
@@ -62,9 +68,19 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
     if (!window.confirm(confirmMsg)) return;
 
     setCancellingId(trip.trip_id);
-    await api.cancelScheduledTrip(idToCancel);
-    setTrips(prev => prev.filter(t => t.trip_id !== trip.trip_id));
-    setCancellingId(null);
+    try {
+      if (trip.role === 'driver') {
+        await api.updateTripStatus(trip.trip_id, 'cancelled');
+      } else {
+        await api.updateTripStatus(trip.trip_id, 'passenger_cancelled');
+      }
+      setTrips(prev => prev.filter(t => t.trip_id !== trip.trip_id));
+      setError('');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   if (loading) {
@@ -88,6 +104,11 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
 
   return (
     <div className="sched-screen">
+      {error && (
+        <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem' }}>
+          {error}
+        </div>
+      )}
       {/* Заголовок */}
       <div className="sched-header">
         <div>
@@ -234,11 +255,11 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
                 </div>
               )}
 
-              {/* Кнопка оценки водителя (для пассажира) */}
-              {trip.role === 'passenger' && trip.driver && (
+              {/* Оценка доступна только после поездки, не для будущих дат */}
+              {trip.role === 'passenger' && trip.driver && trip.date && trip.date <= today && (
                 <button
                   className="sched-review-btn"
-                  onClick={() => setReviewTarget(trip.driver)}
+                  onClick={() => setReviewTarget({ ...trip.driver, trip_id: trip.trip_id })}
                   title="Оставить отзыв о водителе"
                 >
                   <Star size={12} fill="#f59e0b" color="#f59e0b" />
@@ -273,8 +294,13 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
         <ReviewModal
           partner={reviewTarget}
           onSubmit={async (rating, text) => {
-            await api.submitReview(reviewTarget.id, rating, text);
-            setReviewTarget(null);
+            try {
+              await api.submitReview(reviewTarget.id, rating, text, reviewTarget.trip_id);
+              setReviewTarget(null);
+              setError('');
+            } catch (e) {
+              setError(e.message);
+            }
           }}
           onSkip={() => setReviewTarget(null)}
         />

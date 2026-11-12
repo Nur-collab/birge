@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
-import { auth } from '../firebase';
 
 export default function Chat({ tripId, currentUser, partnerName, onNewMessage }) {
   const { t } = useTranslation();
@@ -48,7 +47,18 @@ export default function Chat({ tripId, currentUser, partnerName, onNewMessage })
     if (!input.trim()) return;
     const text = input.trim();
     setInput('');
-    await api.sendChatMessage(tripId, text);
+    try {
+      await api.sendChatMessage(tripId, text);
+    } catch (_) {
+      // Возвращаем текст в поле, чтобы сообщение не потерялось.
+      setInput(text);
+      return;
+    }
+    try {
+      // Подстраховка на случай, если WebSocket-бродкаст не дошёл.
+      const fresh = await api.getTripMessages(tripId);
+      setMessages(fresh);
+    } catch (_) {}
   };
 
   return (

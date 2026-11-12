@@ -7,24 +7,27 @@ import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import Chat from '../components/Chat';
 import { api } from '../utils/api';
+import { localDateStr } from '../utils/date';
 import TripAcceptedCard from '../components/TripAcceptedCard';
 
-export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessage }) {
+export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled, onNewMessage }) {
   const { t } = useTranslation();
   const [goingNotified, setGoingNotified] = useState(false);
   const [passengers, setPassengers] = useState([]);
   const [seats, setSeats] = useState(trip?.seats || 3);
   const [cancelConfirm, setCancelConfirm] = useState(false); // шаг подтверждения отмены
   const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const [copied, setCopied] = useState(false);
   const [copiedElkart, setCopiedElkart] = useState(false);
   const [driverPayment, setDriverPayment] = useState({
-    mbankPhone: trip?.user?.mbank_phone || trip?.driverMbankPhone || trip?.user?.phone || '',
-    elkartNumber: trip?.user?.elkart_number || trip?.driverElkartNumber || '',
+    mbankPhone: trip?.driverMbankPhone || '',
+    elkartNumber: trip?.driverElkartNumber || '',
   });
+  const [paymentError, setPaymentError] = useState('');
 
   // Определяем: поездка запланирована (дата в будущем)?
-  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const today = localDateStr();
   const tripDate = trip?.date && trip.date !== 'Сегодня' ? trip.date : today;
   const isScheduled = tripDate > today;
 
@@ -56,40 +59,44 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
     return () => clearInterval(interval);
   }, [trip?.id, isDriver]);
 
-  // Загружаем актуальные реквизиты водителя (для пассажира)
+  // Реквизиты водителя выдаются только участникам конкретной поездки.
   useEffect(() => {
-    if (isDriver) return;
-    const driverId = trip?.user?.id || trip?.user_id;
-    if (driverId) {
-      api.getUserById(driverId).then(u => {
-        if (u) {
-          setDriverPayment(prev => ({
-            mbankPhone: u.mbank_phone || prev.mbankPhone || u.phone || '',
-            elkartNumber: u.elkart_number || prev.elkartNumber || '',
-          }));
-        }
-      }).catch(() => {});
-    }
-  }, [isDriver, trip?.user?.id, trip?.user_id]);
+    if (isDriver || !trip?.id) return;
+    api.getTripPayment(trip.id).then(p => {
+      if (p) {
+        setDriverPayment(prev => ({
+          mbankPhone: p.mbank_phone || prev.mbankPhone || p.phone || '',
+          elkartNumber: p.elkart_number || prev.elkartNumber || '',
+        }));
+        setPaymentError('');
+      }
+    }).catch((e) => setPaymentError(e.message || 'Не удалось загрузить реквизиты'));
+  }, [isDriver, trip?.id]);
 
   const handlePayMbank = () => {
-    const targetPhone = driverPayment.mbankPhone || trip?.user?.phone || '';
-    if (targetPhone) {
-      navigator.clipboard?.writeText(targetPhone);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3500);
+    const targetPhone = driverPayment.mbankPhone;
+    if (!targetPhone) {
+      setPaymentError('Реквизиты ещё не загружены. Попробуйте через секунду.');
+      return;
     }
+    setPaymentError('');
+    navigator.clipboard?.writeText(targetPhone);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3500);
     // Открываем веб/приложение MBank
     window.open('https://app.mbank.kg/', '_blank');
   };
 
   const handleCopyElkart = () => {
-    const targetCard = driverPayment.elkartNumber || '';
-    if (targetCard) {
-      navigator.clipboard?.writeText(targetCard);
-      setCopiedElkart(true);
-      setTimeout(() => setCopiedElkart(false), 3000);
+    const targetCard = driverPayment.elkartNumber;
+    if (!targetCard) {
+      setPaymentError('Номер карты Элкарт не указан.');
+      return;
     }
+    setPaymentError('');
+    navigator.clipboard?.writeText(targetCard);
+    setCopiedElkart(true);
+    setTimeout(() => setCopiedElkart(false), 3000);
   };
 
   if (!trip) return null;
@@ -112,16 +119,13 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
   const carPlate = trip.driverCarPlate;
   const carColor = trip.driverCarColor;
 
-  const sendGoingMessage = () => {
-    const WS_URL = (import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com')
-      .replace('https://', 'wss://').replace('http://', 'ws://');
-    const token = localStorage.getItem('birge_token') || '';
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${chatRoomId}/${currentUser.id}?token=${token}`);
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ text: `🚗 Выезжаю! Буду через ~5 минут. Выходите ✅` }));
-      setTimeout(() => ws.close(), 500);
-    };
-    setGoingNotified(true);
+  const sendGoingMessage = async () => {
+    try {
+      await api.sendChatMessage(chatRoomId, '🚗 Выезжаю! Буду через ~5 минут. Выходите ✅');
+      setGoingNotified(true);
+    } catch (_) {
+      // Не показываем ложный успех, если сообщение не доставлено.
+    }
   };
 
   /** Пассажир отменяет свою поездку */
@@ -135,22 +139,17 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
     }
     // Второй тап — подтверждение получено, отменяем
     setCancelling(true);
+    setCancelError('');
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://birge-backend.onrender.com';
-      const token = localStorage.getItem('birge_token') || '';
-      await fetch(`${API_URL}/trips/${trip.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ status: isDriver ? 'cancelled' : 'passenger_cancelled' }),
-      });
-    } catch (_) {
-      // Даже если запрос упал — всё равно закрываем экран
+      await api.updateTripStatus(trip.id, isDriver ? 'cancelled' : 'passenger_cancelled');
+      // Отмена — это не завершение поездки: не показываем модал отзыва.
+      if (onCancelled) onCancelled();
+      else onFinish();
+    } catch (e) {
+      // Не закрываем экран, если сервер не подтвердил отмену.
+      setCancelError(e.message);
     } finally {
       setCancelling(false);
-      onFinish(); // возвращаемся на home через ReviewModal
     }
   };
 
@@ -185,9 +184,11 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
               )}
             </div>
           </div>
-          <button className="panic-btn" onClick={onPanic} title="Тревожная кнопка">
-            <AlertTriangle size={20} />
-          </button>
+          {!isScheduled && (
+            <button className="panic-btn" onClick={onPanic} title="Тревожная кнопка">
+              <AlertTriangle size={20} />
+            </button>
+          )}
         </div>
 
         {/* Для ВОДИТЕЛЯ — счётчик мест + список пассажиров */}
@@ -379,6 +380,12 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
             )}
           </div>
 
+          {paymentError && (
+            <p style={{ fontSize: '0.78rem', color: '#b45309', margin: '0 0 8px', fontWeight: 500 }}>
+              {paymentError}
+            </p>
+          )}
+
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
@@ -432,7 +439,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
 
           {copied && (
             <p style={{ fontSize: '0.78rem', color: '#047857', textAlign: 'center', margin: 0, fontWeight: 500 }}>
-              ✅ Номер {driverPayment.mbankPhone || trip?.user?.phone} скопирован в буфер! Открываем MBank...
+              ✅ Номер {driverPayment.mbankPhone} скопирован в буфер! Открываем MBank...
             </p>
           )}
         </div>
@@ -443,42 +450,51 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onNewMessag
 
         {/* Кнопка Отмены — только для ПАССАЖИРА */}
         {!isDriver && (
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              width: '100%',
-              padding: '13px 20px',
-              background: cancelConfirm
-                ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
-                : '#fff1f2',
-              color: cancelConfirm ? 'white' : '#dc2626',
-              border: `1.5px solid ${cancelConfirm ? '#dc2626' : '#fecdd3'}`,
-              borderRadius: 16,
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              cursor: cancelling ? 'wait' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: cancelConfirm ? '0 4px 14px rgba(220,38,38,0.3)' : 'none',
-            }}
-            onClick={handleCancelTrip}
-            disabled={cancelling}
-          >
-            <XCircle size={18} />
-            {cancelling
-              ? 'Отменяем...'
-              : cancelConfirm
-              ? '❗ Нажмите ещё раз для подтверждения'
-              : 'Отменить поездку'}
-          </button>
+          <>
+            <button
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '13px 20px',
+                background: cancelConfirm
+                  ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
+                  : '#fff1f2',
+                color: cancelConfirm ? 'white' : '#dc2626',
+                border: `1.5px solid ${cancelConfirm ? '#dc2626' : '#fecdd3'}`,
+                borderRadius: 16,
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: cancelling ? 'wait' : 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: cancelConfirm ? '0 4px 14px rgba(220,38,38,0.3)' : 'none',
+              }}
+              onClick={handleCancelTrip}
+              disabled={cancelling}
+            >
+              <XCircle size={18} />
+              {cancelling
+                ? 'Отменяем...'
+                : cancelConfirm
+                ? '❗ Нажмите ещё раз для подтверждения'
+                : 'Отменить поездку'}
+            </button>
+            {cancelError && (
+              <p style={{ color: '#dc2626', fontSize: '0.78rem', margin: 0, textAlign: 'center' }}>
+                {cancelError}
+              </p>
+            )}
+          </>
         )}
 
-        {/* Завершить — для всех */}
-        <button className="primary-btn finish-btn" onClick={onFinish}>
-          {isDriver ? 'Завершить поездку' : 'Приехали ✅'}
-        </button>
+        {/* Завершить — только в день поездки */}
+        {!isScheduled && (
+          <button className="primary-btn finish-btn" onClick={onFinish}>
+            {isDriver ? 'Завершить поездку' : 'Приехали ✅'}
+          </button>
+        )}
 
       </div>
 

@@ -1,12 +1,18 @@
-import React, { useState, useRef } from 'react';
-import { ArrowRight, Phone, Shield, Loader } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, Phone, Shield, Loader, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { auth, db } from '../firebase';
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { api } from '../utils/api';
+
+const mapAuthError = (message) => {
+  if (!message) return 'Неверный или просроченный код';
+  if (/invalid,\s*expired,\s*or\s*locked\s*code/i.test(message)) {
+    return 'Неверный или просроченный код';
+  }
+  if (/phone number required/i.test(message)) {
+    return 'Введите номер телефона';
+  }
+  return message;
+};
 
 // ─── Шаг 1: Ввод номера телефона ────────────────────────────
 function PhoneStep({ onNext }) {
@@ -14,11 +20,14 @@ function PhoneStep({ onNext }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const recaptchaRef = useRef(null);
-  const verifierRef = useRef(null);
 
   const formatPhone = (val) => {
-    const digits = val.replace(/\D/g, '').slice(0, 9);
+    let digits = val.replace(/\D/g, '');
+    // Пользователь может вставить номер целиком: +996 555 123 456.
+    if (digits.startsWith('996')) digits = digits.slice(3);
+    // После +996 номер может начинаться с 0 (например, +996 0555...).
+    if (digits.startsWith('0') && digits.length > 9) digits = digits.slice(1);
+    digits = digits.slice(0, 9);
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return digits.slice(0, 3) + ' ' + digits.slice(3);
     return digits.slice(0, 3) + ' ' + digits.slice(3, 6) + ' ' + digits.slice(6);
@@ -26,38 +35,21 @@ function PhoneStep({ onNext }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!phone || phone.replace(/\D/g, '').length < 9) {
-      setError(t('auth.error_invalid_phone'));
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length !== 9) {
+      setError(t('auth.error_invalid_phone') || 'Введите 9 цифр после +996');
       return;
     }
     setLoading(true);
     setError('');
 
     try {
-      const fullPhone = '+996' + phone.replace(/\D/g, '');
-
-      // Инициализируем reCAPTCHA (invisible mode)
-      if (!verifierRef.current) {
-        verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current, {
-          size: 'invisible',
-          callback: () => {},
-        });
-      }
-
-      // Отправляем SMS через Firebase Phone Auth
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, verifierRef.current);
-      onNext(fullPhone, confirmationResult);
+      const fullPhone = '+996' + digits;
+      const res = await api.sendCode(fullPhone);
+      onNext(fullPhone, res);
     } catch (err) {
       console.error('[PhoneStep]', err);
-      if (err.code === 'auth/too-many-requests') {
-        setError('Слишком много попыток. Попробуйте позже.');
-      } else if (err.code === 'auth/invalid-phone-number') {
-        setError(t('auth.error_invalid_phone'));
-      } else {
-        setError(t('auth.error_generic'));
-      }
-      // Сбросить verifier при ошибке
-      verifierRef.current = null;
+      setError(mapAuthError(err.message) || 'Ошибка отправки кода. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
@@ -68,8 +60,8 @@ function PhoneStep({ onNext }) {
       <div className="login-icon-circle">
         <Phone size={28} color="white" />
       </div>
-      <h2 className="login-step-title">{t('auth.phone_number')}</h2>
-      <p className="login-step-desc">{t('auth.enter_phone')}</p>
+      <h2 className="login-step-title">{t('auth.phone_number') || 'Номер телефона'}</h2>
+      <p className="login-step-desc">{t('auth.enter_phone') || 'Введите номер телефона для входа в Birge'}</p>
 
       <form onSubmit={handleSubmit} className="login-form">
         <div className={`phone-input-wrap ${error ? 'has-error' : ''}`}>
@@ -85,26 +77,30 @@ function PhoneStep({ onNext }) {
         </div>
         {error && <p className="field-error">{error}</p>}
 
-        {/* Невидимый контейнер для reCAPTCHA */}
-        <div ref={recaptchaRef} />
-
-        <p className="sms-hint">📲 Получите код подтверждения через SMS</p>
+        <p className="sms-hint">📲 Код подтверждения придёт в Telegram или SMS</p>
 
         <button type="submit" className="login-btn" disabled={loading || phone.replace(/\D/g, '').length < 9}>
-          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.get_code')} <ArrowRight size={20} /></>}
+          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.get_code') || 'Получить код'} <ArrowRight size={20} /></>}
         </button>
+
+        <div className="telegram-hint-card">
+          <Send size={16} color="#0284c7" />
+          <span>Бот для быстрой авторизации: <a href="https://t.me/BirgeAuthBot" target="_blank" rel="noopener noreferrer">@BirgeAuthBot</a></span>
+        </div>
       </form>
     </div>
   );
 }
 
-// ─── Шаг 2: Ввод SMS-кода ───────────────────────────────────
-function CodeStep({ phone, confirmationResult, onBack, onVerified }) {
+// ─── Шаг 2: Ввод кода подтверждения ─────────────────────────
+function CodeStep({ phone, sendInfo, onBack, onVerified }) {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isTelegram = sendInfo?.tg_linked;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,42 +109,15 @@ function CodeStep({ phone, confirmationResult, onBack, onVerified }) {
     setError('');
 
     try {
-      // Подтверждаем SMS-код через Firebase
-      const userCredential = await confirmationResult.confirm(code);
-      const firebaseUser = userCredential.user;
-
-      // Создаём или обновляем документ пользователя в Firestore
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        // Новый пользователь — создаём документ
-        await setDoc(userRef, {
-          name: name.trim() || 'Новый пользователь',
-          phone: firebaseUser.phoneNumber || phone,
-          photoURL: `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
-          trustRating: 5.0,
-          isVerified: true, // Firebase Phone Auth = верифицирован
-          tripsToday: 0,
-          lastTripDate: null,
-          registeredSince: new Date().getFullYear().toString(),
-          carModel: null,
-          carColor: null,
-          carPlate: null,
-          createdAt: serverTimestamp(),
-        });
+      const data = await api.verifyCode(phone, code, name.trim());
+      const user = data?.user || await api.getCurrentUser();
+      if (!user) {
+        throw new Error('Не удалось загрузить профиль. Попробуйте войти ещё раз.');
       }
-
-      onVerified();
+      onVerified(user);
     } catch (err) {
       console.error('[CodeStep]', err);
-      if (err.code === 'auth/invalid-verification-code') {
-        setError('Неверный код. Проверьте и попробуйте снова.');
-      } else if (err.code === 'auth/code-expired') {
-        setError('Код истёк. Вернитесь и запросите новый.');
-      } else {
-        setError(t('auth.error_generic'));
-      }
+      setError(mapAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -159,11 +128,11 @@ function CodeStep({ phone, confirmationResult, onBack, onVerified }) {
       <div className="login-icon-circle" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
         <Shield size={28} color="white" />
       </div>
-      <h2 className="login-step-title">{t('auth.sms_code')}</h2>
+      <h2 className="login-step-title">{t('auth.sms_code') || 'Код подтверждения'}</h2>
       <p className="login-step-desc">{phone}</p>
 
-      <div className="sms-badge">
-        📱 Код отправлен через SMS
+      <div className={`sms-badge ${isTelegram ? 'tg-badge' : ''}`}>
+        {isTelegram ? '✈️ Код отправлен в Telegram бота' : '📱 Код отправлен (проверьте Telegram или SMS)'}
       </div>
 
       <form onSubmit={handleSubmit} className="login-form">
@@ -182,18 +151,18 @@ function CodeStep({ phone, confirmationResult, onBack, onVerified }) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={t('settings.name')}
+          placeholder={t('settings.name') || 'Ваше имя'}
           className="name-input"
         />
 
         {error && <p className="field-error">{error}</p>}
 
         <button type="submit" className="login-btn" disabled={loading || code.length < 6}>
-          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.verify')} <ArrowRight size={20} /></>}
+          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.verify') || 'Войти'} <ArrowRight size={20} /></>}
         </button>
 
         <button type="button" className="back-btn" onClick={onBack}>
-          ← {t('back')}
+          ← {t('back') || 'Назад'}
         </button>
       </form>
     </div>
@@ -205,7 +174,7 @@ export default function Login({ onLoggedIn }) {
   const { t } = useTranslation();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [sendInfo, setSendInfo] = useState(null);
 
   return (
     <div className="login-screen">
@@ -217,7 +186,7 @@ export default function Login({ onLoggedIn }) {
         <div className="login-logo">
           <div className="login-logo-badge">Б</div>
           <div>
-            <h1>{t('title')}</h1>
+            <h1>{t('title') || 'BIRGE'}</h1>
           </div>
         </div>
 
@@ -229,16 +198,16 @@ export default function Login({ onLoggedIn }) {
 
         {step === 'phone' ? (
           <PhoneStep
-            onNext={(ph, cr) => {
+            onNext={(ph, info) => {
               setPhone(ph);
-              setConfirmationResult(cr);
+              setSendInfo(info);
               setStep('code');
             }}
           />
         ) : (
           <CodeStep
             phone={phone}
-            confirmationResult={confirmationResult}
+            sendInfo={sendInfo}
             onBack={() => setStep('phone')}
             onVerified={onLoggedIn}
           />
@@ -269,7 +238,10 @@ export default function Login({ onLoggedIn }) {
         .login-step-title { font-size:1.25rem; font-weight:700; color:#111827; }
         .login-step-desc { font-size:0.88rem; color:#6b7280; line-height:1.5; }
         .sms-badge { background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:10px 14px; font-size:0.83rem; color:#166534; font-weight:600; width:100%; box-sizing:border-box; text-align:center; }
+        .sms-badge.tg-badge { background:#eff6ff; border-color:#93c5fd; color:#1e40af; }
         .sms-hint { font-size:0.82rem; color:#6b7280; margin:0; }
+        .telegram-hint-card { display:flex; align-items:center; gap:8px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:8px 12px; font-size:0.8rem; color:#0369a1; text-align:left; margin-top:4px; }
+        .telegram-hint-card a { color:#0284c7; font-weight:600; text-decoration:underline; }
         .login-form { width:100%; display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem; }
         .phone-input-wrap { display:flex; align-items:center; border:1.5px solid #d1d5db; border-radius:12px; overflow:hidden; transition:border-color 0.2s; background:#f9fafb; }
         .phone-input-wrap:focus-within { border-color:#22c55e; background:white; box-shadow:0 0 0 3px rgba(34,197,94,0.1); }

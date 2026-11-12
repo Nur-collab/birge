@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { localDateStr } from '../utils/date';
 import { User, Car, Clock, Search, Navigation, ArrowRight, Calendar, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
@@ -28,14 +29,14 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [to, setTo] = useState('ЦУМ (Центр)');
   const [tagTarget, setTagTarget] = useState('to'); // 'from' или 'to'
   const [time, setTime] = useState('08:15');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localDateStr());
   const [seats, setSeats] = useState(3);
   const [price, setPrice] = useState(0); // цена за место в сомах (0 = бесплатно)
   const [geoLoading, setGeoLoading] = useState(false);
   const [errors, setErrors] = useState({}); // валидационные ошибки формы
 
-  const today = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const today = localDateStr();
+  const tomorrow = localDateStr(1);
 
   const formatDateLabel = (d) => {
     if (d === today) return 'Сегодня';
