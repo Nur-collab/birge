@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, X, Send } from 'lucide-react';
+import { Star, X, Send, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function ReviewModal({ partner, onSubmit, onSkip }) {
@@ -19,7 +19,9 @@ export default function ReviewModal({ partner, onSubmit, onSkip }) {
         return (
             <div className="modal-overlay">
                 <div className="review-modal" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                        <CheckCircle2 size={32} />
+                    </div>
                     <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>{t('review.thanks')}</h3>
                     <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>{t('review.community')}</p>
                 </div>

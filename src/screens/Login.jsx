@@ -1,18 +1,32 @@
 import React, { useState } from 'react';
-import { ArrowRight, Phone, Shield, Loader, Send } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Phone, ShieldCheck, Loader2, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
 const mapAuthError = (message) => {
   if (!message) return 'Неверный или просроченный код';
   if (/invalid,\s*expired,\s*or\s*locked\s*code/i.test(message)) {
-    return 'Неверный или просроченный код';
+    return 'Неверный или просроченный код подтверждения';
   }
   if (/phone number required/i.test(message)) {
-    return 'Введите номер телефона';
+    return 'Укажите номер телефона';
+  }
+  if (/too many requests/i.test(message)) {
+    return 'Слишком много попыток. Подождите 1 минуту.';
   }
   return message;
 };
+
+// SVG флаг Кыргызстана для международного поля ввода
+const KyrgyzstanFlag = () => (
+  <svg width="20" height="14" viewBox="0 0 20 14" fill="none" style={{ borderRadius: 2, flexShrink: 0 }}>
+    <rect width="20" height="14" fill="#E8112D" />
+    <circle cx="10" cy="7" r="3.2" fill="#FFE800" />
+    <circle cx="10" cy="7" r="2.4" fill="#E8112D" />
+    <circle cx="10" cy="7" r="1.8" fill="#FFE800" />
+    <path d="M10 4.2V9.8M7.2 7H12.8M8 5.2L12 8.8M8 8.8L12 5.2" stroke="#E8112D" strokeWidth="0.6" />
+  </svg>
+);
 
 // ─── Шаг 1: Ввод номера телефона ────────────────────────────
 function PhoneStep({ onNext }) {
@@ -23,9 +37,7 @@ function PhoneStep({ onNext }) {
 
   const formatPhone = (val) => {
     let digits = val.replace(/\D/g, '');
-    // Пользователь может вставить номер целиком: +996 555 123 456.
     if (digits.startsWith('996')) digits = digits.slice(3);
-    // После +996 номер может начинаться с 0 (например, +996 0555...).
     if (digits.startsWith('0') && digits.length > 9) digits = digits.slice(1);
     digits = digits.slice(0, 9);
     if (digits.length <= 3) return digits;
@@ -49,7 +61,7 @@ function PhoneStep({ onNext }) {
       onNext(fullPhone, res);
     } catch (err) {
       console.error('[PhoneStep]', err);
-      setError(mapAuthError(err.message) || 'Ошибка отправки кода. Попробуйте ещё раз.');
+      setError(mapAuthError(err.message) || 'Ошибка отправки кода. Попробуйте еще раз.');
     } finally {
       setLoading(false);
     }
@@ -57,35 +69,61 @@ function PhoneStep({ onNext }) {
 
   return (
     <div className="login-step">
-      <div className="login-icon-circle">
-        <Phone size={28} color="white" />
+      <div className="login-step-header">
+        <h2 className="login-title">Вход в BIRGE</h2>
+        <p className="login-desc">Сервис совместных поездок по Кыргызстану</p>
       </div>
-      <h2 className="login-step-title">{t('auth.phone_number') || 'Номер телефона'}</h2>
-      <p className="login-step-desc">{t('auth.enter_phone') || 'Введите номер телефона для входа в Birge'}</p>
 
       <form onSubmit={handleSubmit} className="login-form">
-        <div className={`phone-input-wrap ${error ? 'has-error' : ''}`}>
-          <span className="phone-prefix">+996</span>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => { setError(''); setPhone(formatPhone(e.target.value)); }}
-            placeholder="555 123 456"
-            className="phone-input"
-            autoFocus
-          />
+        <div className="field-group">
+          <label className="input-label">Номер телефона</label>
+          <div className={`phone-input-wrap ${error ? 'has-error' : ''}`}>
+            <div className="phone-prefix-pill">
+              <KyrgyzstanFlag />
+              <span className="prefix-code">+996</span>
+            </div>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => { setError(''); setPhone(formatPhone(e.target.value)); }}
+              placeholder="555 123 456"
+              className="phone-native-input"
+              autoFocus
+            />
+          </div>
+          {error && (
+            <div className="auth-error-banner">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
-        {error && <p className="field-error">{error}</p>}
 
-        <p className="sms-hint">📲 Код подтверждения придёт в Telegram или SMS</p>
-
-        <button type="submit" className="login-btn" disabled={loading || phone.replace(/\D/g, '').length < 9}>
-          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.get_code') || 'Получить код'} <ArrowRight size={20} /></>}
+        <button 
+          type="submit" 
+          className="primary-btn submit-btn" 
+          disabled={loading || phone.replace(/\D/g, '').length < 9}
+        >
+          {loading ? (
+            <Loader2 size={18} className="spin" />
+          ) : (
+            <>
+              <span>Получить код</span>
+              <ArrowRight size={17} />
+            </>
+          )}
         </button>
 
-        <div className="telegram-hint-card">
-          <Send size={16} color="#0284c7" />
-          <span>Бот для быстрой авторизации: <a href="https://t.me/BirgeAuthBot" target="_blank" rel="noopener noreferrer">@BirgeAuthBot</a></span>
+        <div className="auth-channel-card">
+          <div className="channel-icon-wrap">
+            <Send size={15} />
+          </div>
+          <div className="channel-info">
+            <span className="channel-title">Быстрый код в Telegram</span>
+            <span className="channel-sub">
+              Запустите бота <a href="https://t.me/BirgeAuthBot" target="_blank" rel="noopener noreferrer">@BirgeAuthBot</a> для моментального получения кода
+            </span>
+          </div>
         </div>
       </form>
     </div>
@@ -112,7 +150,7 @@ function CodeStep({ phone, sendInfo, onBack, onVerified }) {
       const data = await api.verifyCode(phone, code, name.trim());
       const user = data?.user || await api.getCurrentUser();
       if (!user) {
-        throw new Error('Не удалось загрузить профиль. Попробуйте войти ещё раз.');
+        throw new Error('Не удалось загрузить профиль. Попробуйте войти еще раз.');
       }
       onVerified(user);
     } catch (err) {
@@ -125,75 +163,99 @@ function CodeStep({ phone, sendInfo, onBack, onVerified }) {
 
   return (
     <div className="login-step">
-      <div className="login-icon-circle" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-        <Shield size={28} color="white" />
+      <div className="login-step-header">
+        <h2 className="login-title">Подтверждение</h2>
+        <p className="login-desc">Код отправлен на номер <strong style={{ color: 'var(--text-main)' }}>{phone}</strong></p>
       </div>
-      <h2 className="login-step-title">{t('auth.sms_code') || 'Код подтверждения'}</h2>
-      <p className="login-step-desc">{phone}</p>
 
-      <div className={`sms-badge ${isTelegram ? 'tg-badge' : ''}`}>
-        {isTelegram ? '✈️ Код отправлен в Telegram бота' : '📱 Код отправлен (проверьте Telegram или SMS)'}
+      <div className={`delivery-notice ${isTelegram ? 'telegram-delivery' : ''}`}>
+        <CheckCircle2 size={15} />
+        <span>
+          {isTelegram 
+            ? 'Код отправлен в Telegram бот @BirgeAuthBot' 
+            : 'Проверьте входящие SMS или Telegram бот'}
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="login-form">
-        <input
-          type="text"
-          inputMode="numeric"
-          value={code}
-          onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); }}
-          placeholder="••••••"
-          className="code-input"
-          maxLength={6}
-          autoFocus
-        />
+        <div className="field-group">
+          <label className="input-label">6-значный код</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={code}
+            onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); }}
+            placeholder="••••••"
+            className="code-digit-input"
+            maxLength={6}
+            autoFocus
+          />
+        </div>
 
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t('settings.name') || 'Ваше имя'}
-          className="name-input"
-        />
+        <div className="field-group">
+          <label className="input-label">Имя (для новых пользователей)</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ваше имя"
+            className="pro-input"
+          />
+        </div>
 
-        {error && <p className="field-error">{error}</p>}
+        {error && (
+          <div className="auth-error-banner">
+            <AlertCircle size={14} />
+            <span>{error}</span>
+          </div>
+        )}
 
-        <button type="submit" className="login-btn" disabled={loading || code.length < 6}>
-          {loading ? <Loader size={20} className="spin" /> : <>{t('auth.verify') || 'Войти'} <ArrowRight size={20} /></>}
+        <button 
+          type="submit" 
+          className="primary-btn submit-btn" 
+          disabled={loading || code.length < 6}
+        >
+          {loading ? (
+            <Loader2 size={18} className="spin" />
+          ) : (
+            <>
+              <span>Подтвердить и войти</span>
+              <ArrowRight size={17} />
+            </>
+          )}
         </button>
 
-        <button type="button" className="back-btn" onClick={onBack}>
-          ← {t('back') || 'Назад'}
+        <button type="button" className="auth-back-action" onClick={onBack}>
+          <ArrowLeft size={15} />
+          <span>Изменить номер</span>
         </button>
       </form>
     </div>
   );
 }
 
-// ─── Главный компонент ───────────────────────────────────────
+// ─── Главный экран авторизации ───────────────────────────────
 export default function Login({ onLoggedIn }) {
-  const { t } = useTranslation();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
   const [sendInfo, setSendInfo] = useState(null);
 
   return (
     <div className="login-screen">
-      <div className="bg-circle bg-circle-1" />
-      <div className="bg-circle bg-circle-2" />
-      <div className="bg-circle bg-circle-3" />
-
-      <div className="login-card">
-        <div className="login-logo">
-          <div className="login-logo-badge">Б</div>
-          <div>
-            <h1>{t('title') || 'BIRGE'}</h1>
+      <div className="auth-card">
+        {/* Бренд */}
+        <div className="auth-brand">
+          <div className="auth-logo-badge">B</div>
+          <div className="auth-brand-info">
+            <div className="auth-brand-title">BIRGE</div>
+            <div className="auth-brand-tagline">MOBILITY NETWORK</div>
           </div>
         </div>
 
-        <div className="login-steps-indicator">
-          <div className={`step-dot ${step === 'phone' ? 'active' : 'done'}`} />
-          <div className="step-line" />
-          <div className={`step-dot ${step === 'code' ? 'active' : ''}`} />
+        {/* Индикатор прогресса */}
+        <div className="auth-progress-bar">
+          <div className={`progress-segment ${step === 'phone' ? 'active' : 'completed'}`} />
+          <div className={`progress-segment ${step === 'code' ? 'active' : ''}`} />
         </div>
 
         {step === 'phone' ? (
@@ -214,9 +276,9 @@ export default function Login({ onLoggedIn }) {
         )}
       </div>
 
-      <p className="login-footer">
-        Входя, вы соглашаетесь с <a href="/terms.html" target="_blank" rel="noopener noreferrer">Правилами</a> и <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a>
-      </p>
+      <div className="auth-footer-legal">
+        Нажимая «Получить код», вы соглашаетесь с <a href="/terms.html" target="_blank" rel="noopener noreferrer">Правилами</a> и <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a>
+      </div>
 
       <style>{`
         .login-screen {
@@ -227,163 +289,274 @@ export default function Login({ onLoggedIn }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
+          padding: 1.5rem 1rem;
           position: relative;
-          overflow: hidden;
           transition: background-color 0.25s ease;
         }
-        .bg-circle { position:absolute; border-radius:50%; opacity:0.12; pointer-events:none; }
-        .bg-circle-1 { width:320px;height:320px; background:radial-gradient(circle,#10b981,transparent); top:-100px;right:-80px; }
-        .bg-circle-2 { width:240px;height:240px; background:radial-gradient(circle,#059669,transparent); bottom:-60px;left:-60px; }
-        .bg-circle-3 { width:160px;height:160px; background:radial-gradient(circle,#34d399,transparent); top:40%;left:-40px; }
-        .login-card {
+        .auth-card {
           background: var(--bg-card);
           border: 1px solid var(--border-subtle);
-          border-radius: 24px;
-          padding: 2rem;
+          border-radius: var(--radius-lg);
+          padding: 2rem 1.75rem;
           width: 100%;
-          max-width: 380px;
+          max-width: 400px;
           box-shadow: var(--floating-shadow);
-          position: relative;
-          z-index: 1;
           transition: background-color 0.25s, border-color 0.25s;
         }
-        .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border-subtle); }
-        .login-logo-badge {
-          width: 48px; height: 48px;
-          background: linear-gradient(135deg,#10b981,#059669);
-          border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.5rem; font-weight: 900; color: white;
-          box-shadow: 0 4px 14px var(--primary-glow);
-          flex-shrink: 0;
-        }
-        .login-logo h1 { font-size:1.5rem; font-weight:900; color:var(--text-main); letter-spacing:2px; line-height:1; }
-        .login-steps-indicator { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:1.5rem; }
-        .step-dot { width:10px;height:10px; border-radius:50%; background:var(--border-subtle); transition:all 0.3s; }
-        .step-dot.active { background:var(--primary); box-shadow:0 0 0 3px var(--primary-glow); width:12px;height:12px; }
-        .step-dot.done { background:var(--primary); }
-        .step-line { width:40px;height:2px; background:var(--border-subtle); margin:0 4px; }
-        .login-step { display:flex; flex-direction:column; align-items:center; gap:0.75rem; text-align:center; }
-        .login-icon-circle {
-          width: 56px; height: 56px;
-          border-radius: 50%;
-          background: linear-gradient(135deg,#10b981,#059669);
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 6px 20px var(--primary-glow);
-          margin-bottom: 0.25rem;
-        }
-        .login-step-title { font-size:1.25rem; font-weight:700; color:var(--text-main); }
-        .login-step-desc { font-size:0.88rem; color:var(--text-muted); line-height:1.5; }
-        .sms-badge {
-          background: var(--bg-subtle);
-          border: 1px solid var(--border-subtle);
-          border-radius: 12px;
-          padding: 10px 14px;
-          font-size: 0.83rem;
-          color: var(--primary);
-          font-weight: 600;
-          width: 100%;
-          box-sizing: border-box;
-          text-align: center;
-        }
-        .sms-badge.tg-badge { background:rgba(14,165,233,0.12); border-color:rgba(14,165,233,0.3); color:#0284c7; }
-        .sms-hint { font-size:0.82rem; color:var(--text-muted); margin:0; }
-        .telegram-hint-card { display:flex; align-items:center; gap:8px; background:var(--bg-subtle); border:1px solid var(--border-subtle); border-radius:10px; padding:8px 12px; font-size:0.8rem; color:var(--text-muted); text-align:left; margin-top:4px; }
-        .telegram-hint-card a { color:#0284c7; font-weight:600; text-decoration:underline; }
-        .login-form { width:100%; display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem; }
-        .phone-input-wrap {
+        .auth-brand {
           display: flex;
           align-items: center;
-          border: 1.5px solid var(--border-subtle);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: border-color 0.2s, background-color 0.2s;
-          background: var(--bg-input);
+          gap: 12px;
+          margin-bottom: 1.5rem;
         }
-        .phone-input-wrap:focus-within { border-color:var(--primary); background:var(--bg-card); box-shadow:0 0 0 3px var(--primary-glow); }
-        .phone-input-wrap.has-error { border-color:#ef4444; }
-        .phone-prefix {
-          padding: 0 14px;
-          font-weight: 700;
-          color: var(--text-main);
-          background: var(--bg-subtle);
-          border-right: 1.5px solid var(--border-subtle);
-          height: 100%;
-          display: flex;
-          align-items: center;
-          font-size: 0.95rem;
-          white-space: nowrap;
-        }
-        .phone-input {
-          flex: 1;
-          border: none;
-          outline: none;
-          padding: 14px 14px;
-          font-size: 1rem;
-          background: transparent;
-          color: var(--text-main);
-          font-weight: 600;
-          letter-spacing: 1px;
-        }
-        .phone-input::placeholder { color:var(--text-subtle); font-weight:400; letter-spacing:0; }
-        .code-input {
-          width: 100%;
-          padding: 16px;
-          text-align: center;
-          font-size: 1.8rem;
-          font-weight: 700;
-          letter-spacing: 12px;
-          border: 1.5px solid var(--border-subtle);
-          border-radius: 12px;
-          outline: none;
-          transition: all 0.2s;
-          color: var(--text-main);
-          background: var(--bg-input);
-          box-sizing: border-box;
-        }
-        .code-input:focus { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-glow); background:var(--bg-card); }
-        .name-input {
-          width: 100%;
-          padding: 13px 16px;
-          border: 1.5px solid var(--border-subtle);
-          border-radius: 12px;
-          font-size: 0.95rem;
-          outline: none;
-          background: var(--bg-input);
-          color: var(--text-main);
-          transition: all 0.2s;
-          box-sizing: border-box;
-        }
-        .name-input:focus { border-color:var(--primary); background:var(--bg-card); box-shadow:0 0 0 3px var(--primary-glow); }
-        .name-input::placeholder { color:var(--text-subtle); }
-        .field-error { font-size:0.82rem; color:#dc2626; background:rgba(239,68,68,0.1); padding:8px 12px; border-radius:8px; text-align:left; margin:0; }
-        .login-btn {
+        .auth-logo-badge {
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 15px;
-          background: linear-gradient(135deg,#10b981,#059669);
-          color: white;
-          border: none;
-          border-radius: 14px;
-          font-size: 1rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 4px 18px var(--primary-glow);
-          letter-spacing: 0.3px;
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #ffffff;
+          box-shadow: 0 4px 12px var(--primary-glow);
+          letter-spacing: -0.5px;
         }
-        .login-btn:hover:not(:disabled) { transform:translateY(-1.5px); box-shadow:0 8px 24px var(--primary-glow); }
-        .login-btn:active:not(:disabled) { transform:scale(0.99); }
-        .login-btn:disabled { opacity:0.5; cursor:not-allowed; }
-        .back-btn { background:none; border:none; color:var(--text-muted); font-size:0.9rem; cursor:pointer; padding:4px; transition:color 0.2s; }
-        .back-btn:hover { color:var(--text-main); }
-        .login-footer { margin-top:1.5rem; font-size:0.78rem; color:var(--text-subtle); text-align:center; z-index:1; position:relative; }
-        .login-footer a { color:var(--primary); text-decoration:none; }
-        @keyframes spin { 100% { transform:rotate(360deg); } }
-        .spin { animation:spin 0.8s linear infinite; }
+        .auth-brand-info {
+          display: flex;
+          flex-direction: column;
+        }
+        .auth-brand-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          color: var(--text-main);
+          line-height: 1.1;
+        }
+        .auth-brand-tagline {
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: var(--primary);
+        }
+        .auth-progress-bar {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 1.5rem;
+        }
+        .progress-segment {
+          flex: 1;
+          height: 3px;
+          background: var(--border-subtle);
+          border-radius: 2px;
+          transition: all 0.25s ease;
+        }
+        .progress-segment.active {
+          background: var(--primary);
+        }
+        .progress-segment.completed {
+          background: var(--primary);
+          opacity: 0.6;
+        }
+        .login-step-header {
+          margin-bottom: 1.25rem;
+        }
+        .login-title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          color: var(--text-main);
+          margin-bottom: 4px;
+        }
+        .login-desc {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+        .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1.1rem;
+        }
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .input-label {
+          font-size: 0.74rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+        .phone-input-wrap {
+          display: flex;
+          align-items: center;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          background: var(--bg-input);
+          overflow: hidden;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .phone-input-wrap:focus-within {
+          border-color: var(--border-focus);
+          box-shadow: 0 0 0 3px var(--primary-glow);
+          background: var(--bg-card);
+        }
+        .phone-input-wrap.has-error {
+          border-color: #ef4444;
+        }
+        .phone-prefix-pill {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 0 12px;
+          background: var(--bg-subtle);
+          border-right: 1px solid var(--border-subtle);
+          height: 48px;
+        }
+        .prefix-code {
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+        .phone-native-input {
+          flex: 1;
+          height: 48px;
+          padding: 0 14px;
+          border: none;
+          background: transparent;
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: var(--text-main);
+          letter-spacing: 0.05em;
+          outline: none;
+        }
+        .phone-native-input::placeholder {
+          color: var(--text-subtle);
+          font-weight: 400;
+          letter-spacing: 0;
+        }
+        .code-digit-input {
+          width: 100%;
+          height: 52px;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          background: var(--bg-input);
+          text-align: center;
+          font-size: 1.6rem;
+          font-weight: 800;
+          letter-spacing: 10px;
+          color: var(--text-main);
+          outline: none;
+          transition: all 0.2s;
+        }
+        .code-digit-input:focus {
+          border-color: var(--border-focus);
+          box-shadow: 0 0 0 3px var(--primary-glow);
+          background: var(--bg-card);
+        }
+        .auth-error-banner {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-size: 0.78rem;
+          color: #ef4444;
+          font-weight: 600;
+        }
+        .delivery-notice {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--primary);
+          margin-bottom: 1.25rem;
+        }
+        .delivery-notice.telegram-delivery {
+          background: rgba(14, 165, 233, 0.08);
+          border-color: rgba(14, 165, 233, 0.25);
+          color: #0284c7;
+        }
+        .auth-channel-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          padding: 10px 12px;
+          text-align: left;
+        }
+        .channel-icon-wrap {
+          color: #0284c7;
+          margin-top: 1px;
+        }
+        .channel-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .channel-title {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+        .channel-sub {
+          font-size: 0.74rem;
+          color: var(--text-muted);
+          line-height: 1.35;
+        }
+        .channel-sub a {
+          color: #0284c7;
+          font-weight: 700;
+          text-decoration: underline;
+        }
+        .submit-btn {
+          height: 48px;
+          margin-top: 0.25rem;
+        }
+        .auth-back-action {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 6px;
+          transition: color 0.15s;
+        }
+        .auth-back-action:hover {
+          color: var(--text-main);
+        }
+        .auth-footer-legal {
+          margin-top: 1.5rem;
+          font-size: 0.74rem;
+          color: var(--text-subtle);
+          text-align: center;
+          max-width: 360px;
+          line-height: 1.4;
+        }
+        .auth-footer-legal a {
+          color: var(--text-muted);
+          text-decoration: underline;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spin { animation: spin 0.8s linear infinite; }
       `}</style>
     </div>
   );

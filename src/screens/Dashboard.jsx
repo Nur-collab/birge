@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
 import { localDateStr } from '../utils/date';
-import { User, Car, Clock, Search, Navigation, ArrowRight, Calendar, MapPin } from 'lucide-react';
+import { 
+  User, 
+  Car, 
+  Clock, 
+  Search, 
+  Navigation, 
+  ArrowRight, 
+  ArrowUpDown,
+  Calendar, 
+  MapPin, 
+  Layers, 
+  Building2, 
+  Compass, 
+  ShoppingBag, 
+  AlertTriangle,
+  Users,
+  CreditCard,
+  Plus,
+  Minus
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
@@ -10,6 +29,7 @@ const BISHKEK_HUBS = [
   { name: 'ЦУМ (Центр)', cat: 'center' },
   { name: 'ТРК Asia Mall', cat: 'center' },
   { name: 'Южная Магистраль', cat: 'center' },
+  { name: 'Политех / БГУ', cat: 'center' },
   { name: 'мкр. Асанбай', cat: 'districts' },
   { name: 'мкр. Джал', cat: 'districts' },
   { name: 'мкр. Тунгуч', cat: 'districts' },
@@ -25,15 +45,14 @@ const BISHKEK_HUBS = [
   { name: 'г. Токмок', cat: 'chuy' },
   { name: 'с. Сокулук', cat: 'chuy' },
   { name: 'г. Кара-Балта', cat: 'chuy' },
-  { name: 'Политех / БГУ', cat: 'center' },
 ];
 
 const HUB_CATEGORIES = [
-  { id: 'all', label: '⚡ Все' },
-  { id: 'center', label: '🏙️ Центр' },
-  { id: 'districts', label: '🏘️ Районы' },
-  { id: 'markets', label: '🛒 Базары' },
-  { id: 'chuy', label: '🚗 Пригород' },
+  { id: 'all', label: 'Все', icon: Layers },
+  { id: 'center', label: 'Центр', icon: Building2 },
+  { id: 'districts', label: 'Районы', icon: Compass },
+  { id: 'markets', label: 'Рынки', icon: ShoppingBag },
+  { id: 'chuy', label: 'Пригород', icon: Navigation },
 ];
 
 export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
@@ -46,9 +65,9 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [time, setTime] = useState('08:15');
   const [date, setDate] = useState(localDateStr());
   const [seats, setSeats] = useState(3);
-  const [price, setPrice] = useState(0); // цена за место в сомах (0 = бесплатно)
+  const [price, setPrice] = useState(100); // цена за место в сомах
   const [geoLoading, setGeoLoading] = useState(false);
-  const [errors, setErrors] = useState({}); // валидационные ошибки формы
+  const [errors, setErrors] = useState({});
 
   const today = localDateStr();
   const tomorrow = localDateStr(1);
@@ -92,6 +111,12 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
     );
   };
 
+  const handleSwapAddresses = () => {
+    if ('vibrate' in navigator) navigator.vibrate?.(10);
+    setFrom(to);
+    setTo(from);
+  };
+
   const handleTagClick = (placeName) => {
     if ('vibrate' in navigator) navigator.vibrate?.(10);
     if (tagTarget === 'from') {
@@ -105,11 +130,9 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Валидация: поля "Откуда" и "Куда" не должны быть пустыми
     const newErrors = {};
-    if (!from.trim()) newErrors.from = 'Укажите откуда';
-    if (!to.trim()) newErrors.to = 'Укажите куда';
+    if (!from.trim()) newErrors.from = 'Укажите точку отправления';
+    if (!to.trim()) newErrors.to = 'Укажите точку назначения';
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -129,264 +152,265 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
   return (
     <div className="dashboard screen-content">
-      {/* Сегментированный контрол роли */}
-      <div className="role-segment-wrap">
-        <p className="role-segment-label">Я еду как</p>
-        <div className="role-segment">
+      {/* Селектор роли (iOS / Linear Segmented Pill) */}
+      <div className="role-switch-container">
+        <div className="role-switch">
           <button
             type="button"
-            className={`role-seg-btn ${role === 'passenger' ? 'seg-active seg-passenger' : ''}`}
+            className={`role-option ${role === 'passenger' ? 'active' : ''}`}
             onClick={() => {
               if ('vibrate' in navigator) navigator.vibrate?.(10);
               setRole('passenger');
             }}
           >
             <User size={16} />
-            <span>{t('matches.passenger')}</span>
+            <span>Пассажир</span>
           </button>
           <button
             type="button"
-            className={`role-seg-btn ${role === 'driver' ? 'seg-active seg-driver' : ''}`}
+            className={`role-option ${role === 'driver' ? 'active' : ''}`}
             onClick={() => {
               if ('vibrate' in navigator) navigator.vibrate?.(10);
               setRole('driver');
             }}
           >
             <Car size={16} />
-            <span>{t('matches.driver')}</span>
+            <span>Водитель</span>
           </button>
         </div>
       </div>
 
       {/* Предупреждение: водитель без данных машины */}
       {role === 'driver' && currentUser && !currentUser.car_model && (
-        <div
-          onClick={onShowSettings}
-          style={{
-            background: '#fffbeb',
-            border: '1.5px solid #fcd34d',
-            borderRadius: 14,
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            transition: 'background 0.2s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'}
-          onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}
-        >
-          <span style={{ fontSize: '1.5rem' }}>🚗</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>Данные машины не заполнены</div>
-            <div style={{ fontSize: '0.78rem', color: '#b45309', marginTop: 2 }}>Пассажиры не увидят вашу машину. Нажмите чтобы заполнить →</div>
+        <div className="driver-warning-card" onClick={onShowSettings}>
+          <div className="warning-icon-wrap">
+            <AlertTriangle size={18} />
           </div>
+          <div className="warning-content">
+            <div className="warning-title">Данные автомобиля не указаны</div>
+            <div className="warning-desc">Пассажиры не увидят марку и номер машины</div>
+          </div>
+          <ArrowRight size={16} className="warning-arrow" />
         </div>
       )}
 
-      {/* Мини-карта */}
-      <div className="mini-map-wrap">
-        <RealMap showUserOnly={true} height="140px" />
+      {/* Интерактивная карта маршрута */}
+      <div className="map-card">
+        <RealMap showUserOnly={true} height="130px" />
       </div>
 
-      {/* Форма поиска */}
-      <form className="trip-form glass-panel" onSubmit={handleSubmit}>
-        <h3 className="form-title">
-          {role === 'driver' ? '🚗 Куда едете?' : '🗺️ Ваш маршрут'}
-        </h3>
+      {/* Основная карточка маршрута */}
+      <form className="route-form-card" onSubmit={handleSubmit}>
+        <div className="form-header">
+          <div className="form-header-title">
+            <MapPin size={16} className="text-primary" />
+            <span>{role === 'driver' ? 'Маршрут поездки' : 'Поиск попутчиков'}</span>
+          </div>
+          <button
+            type="button"
+            className="swap-route-btn"
+            onClick={handleSwapAddresses}
+            title="Поменять местами"
+          >
+            <ArrowUpDown size={15} />
+          </button>
+        </div>
 
-        {/* Route block */}
-        <div className="route-block">
-          <div className="route-row">
-            <div className="dot green" />
-            <div className="route-field">
+        {/* Интегрированный трек маршрута */}
+        <div className="connected-route-card">
+          <div className="route-track-indicator">
+            <div className="track-node origin-node" />
+            <div className="track-line" />
+            <div className="track-node dest-node" />
+          </div>
+
+          <div className="route-inputs-col">
+            <div className="route-input-cell">
               <AddressInput
                 value={from}
                 onChange={(v) => { setFrom(v); setErrors(prev => ({ ...prev, from: undefined })); }}
-                placeholder={`${t('search.from')}...`}
+                placeholder="Откуда едем..."
                 iconColor={errors.from ? '#ef4444' : '#10b981'}
                 name="from"
               />
-              {errors.from && (
-                <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '3px 0 0 2px' }}>
-                  {errors.from}
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={handleGeolocate}
+                disabled={geoLoading}
+                title="Определить мое местоположение"
+                className="inline-geo-btn"
+              >
+                <Navigation size={15} className={geoLoading ? 'spin' : ''} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleGeolocate}
-              disabled={geoLoading}
-              title="Определить моё местоположение"
-              className="geo-btn"
-            >
-              <Navigation size={16} style={{ animation: geoLoading ? 'spin 1s linear infinite' : 'none' }} />
-            </button>
-          </div>
-          <div className="route-divider-line" />
-          <div className="route-row">
-            <div className="dot red" />
-            <div className="route-field">
+            {errors.from && <p className="input-err-msg">{errors.from}</p>}
+
+            <div className="route-input-cell">
               <AddressInput
                 value={to}
                 onChange={(v) => { setTo(v); setErrors(prev => ({ ...prev, to: undefined })); }}
-                placeholder={`${t('search.to')}...`}
-                iconColor={errors.to ? '#ef4444' : '#f43f5e'}
+                placeholder="Куда направляемся..."
+                iconColor={errors.to ? '#ef4444' : '#64748b'}
                 name="to"
               />
-              {errors.to && (
-                <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '3px 0 0 2px' }}>
-                  {errors.to}
-                </p>
-              )}
             </div>
+            {errors.to && <p className="input-err-msg">{errors.to}</p>}
           </div>
         </div>
 
-        {/* Быстрые теги (ЖК и микрорайоны Бишкека и Чуйской области) */}
-        <div className="quick-tags-wrap">
-          <div className="quick-tags-header">
-            <span className="quick-tags-title">📍 {t('tags.title')}</span>
-            <div className="quick-tags-toggle">
+        {/* Быстрые хабы Бишкека и Чуйской области */}
+        <div className="hubs-section">
+          <div className="hubs-top">
+            <div className="section-label">Популярные точки</div>
+            <div className="target-toggle">
               <button
                 type="button"
-                className={`tag-target-btn ${tagTarget === 'from' ? 'active' : ''}`}
+                className={`target-pill ${tagTarget === 'from' ? 'active' : ''}`}
                 onClick={() => setTagTarget('from')}
               >
-                {t('tags.target_from')}
+                Откуда
               </button>
               <button
                 type="button"
-                className={`tag-target-btn ${tagTarget === 'to' ? 'active' : ''}`}
+                className={`target-pill ${tagTarget === 'to' ? 'active' : ''}`}
                 onClick={() => setTagTarget('to')}
               >
-                {t('tags.target_to')}
+                Куда
               </button>
             </div>
           </div>
 
-          {/* Фильтр категорий локаций */}
-          <div className="quick-cat-tabs">
-            {HUB_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className={`quick-cat-btn ${selectedCategory === cat.id ? 'active' : ''}`}
-                onClick={() => {
-                  if ('vibrate' in navigator) navigator.vibrate?.(10);
-                  setSelectedCategory(cat.id);
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
+          {/* Категории */}
+          <div className="category-scroll">
+            {HUB_CATEGORIES.map((cat) => {
+              const IconComp = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => {
+                    if ('vibrate' in navigator) navigator.vibrate?.(10);
+                    setSelectedCategory(cat.id);
+                  }}
+                >
+                  <IconComp size={13} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="quick-tags-list">
-            {BISHKEK_HUBS.filter(h => selectedCategory === 'all' || h.cat === selectedCategory).map((hub) => (
-              <button
-                key={hub.name}
-                type="button"
-                className={`quick-tag-chip ${
-                  (tagTarget === 'from' ? from === hub.name : to === hub.name) ? 'selected' : ''
-                }`}
-                onClick={() => handleTagClick(hub.name)}
-              >
-                {hub.name}
-              </button>
-            ))}
+          {/* Список хабов */}
+          <div className="hubs-chips-scroll">
+            {BISHKEK_HUBS.filter(h => selectedCategory === 'all' || h.cat === selectedCategory).map((hub) => {
+              const isSelected = tagTarget === 'from' ? from === hub.name : to === hub.name;
+              return (
+                <button
+                  key={hub.name}
+                  type="button"
+                  className={`hub-chip ${isSelected ? 'selected' : ''}`}
+                  onClick={() => handleTagClick(hub.name)}
+                >
+                  {hub.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Дата + Время */}
-        <div className="datetime-block">
-          <div className="time-row" style={{ marginBottom: 0, borderRadius: '10px 10px 0 0', borderBottom: '1px solid #e5e7eb' }}>
-            <Calendar size={16} color="#6366f1" />
-            <span className="time-label">Дата поездки</span>
-            <div className="date-picker-wrap">
-              <span className="date-label-text">{formatDateLabel(date)}</span>
+        {/* Дата и Время */}
+        <div className="datetime-grid">
+          <div className="datetime-cell">
+            <div className="cell-label">
+              <Calendar size={14} className="text-muted" />
+              <span>Дата</span>
+            </div>
+            <div className="date-picker-box">
+              <span className="date-display">{formatDateLabel(date)}</span>
               <input
                 type="date"
                 value={date}
                 min={today}
                 onChange={e => setDate(e.target.value)}
                 onClick={e => e.target.showPicker && e.target.showPicker()}
-                className="date-input-hidden"
+                className="hidden-native-input"
               />
             </div>
           </div>
-          <div className="time-row" style={{ borderRadius: '0 0 10px 10px', marginBottom: 0 }}>
-            <Clock size={16} color="#10b981" />
-            <span className="time-label">Время отправления</span>
+
+          <div className="datetime-cell">
+            <div className="cell-label">
+              <Clock size={14} className="text-muted" />
+              <span>Время</span>
+            </div>
             <input
               type="time"
               value={time}
               onChange={e => setTime(e.target.value)}
               required
-              className="time-input"
+              className="time-native-input"
             />
           </div>
         </div>
 
-        {/* Количество мест (только для водителя) */}
+        {/* Настройки для водителя: Места и Цена */}
         {role === 'driver' && (
-          <div className="seats-row">
-            <span className="seats-label">🪑 Свободных мест</span>
-            <div className="seats-btns">
-              {[1, 2, 3, 4].map(n => (
+          <div className="driver-parameters-card">
+            {/* Места */}
+            <div className="parameter-row">
+              <div className="param-label-group">
+                <Users size={16} className="text-muted" />
+                <span className="param-title">Свободных мест</span>
+              </div>
+              <div className="stepper-box">
                 <button
-                  key={n}
                   type="button"
-                  className={`seat-btn ${seats === n ? 'active' : ''}`}
-                  onClick={() => setSeats(n)}
+                  className="stepper-btn"
+                  onClick={() => setSeats(s => Math.max(1, s - 1))}
+                  disabled={seats <= 1}
                 >
-                  {n}
+                  <Minus size={14} />
                 </button>
-              ))}
+                <span className="stepper-value">{seats}</span>
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => setSeats(s => Math.min(8, s + 1))}
+                  disabled={seats >= 8}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Цена за место */}
+            <div className="parameter-row">
+              <div className="param-label-group">
+                <CreditCard size={16} className="text-muted" />
+                <span className="param-title">Взнос за место</span>
+              </div>
+              <div className="price-input-wrap">
+                <input
+                  type="number"
+                  min="0"
+                  max="9999"
+                  step="50"
+                  value={price || ''}
+                  onChange={e => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                  placeholder="0"
+                  className="price-number-input"
+                />
+                <span className="currency-label">СОМ</span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Цена за место (только для водителя) */}
-        {role === 'driver' && (
-          <div className="seats-row" style={{ marginBottom: '1.2rem' }}>
-            <span className="seats-label">💰 Стоимость места</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="number"
-                min="0"
-                max="9999"
-                step="50"
-                value={price || ''}
-                onChange={e => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
-                placeholder="0"
-                style={{
-                  width: 80,
-                  padding: '6px 10px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: 10,
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  color: '#111827',
-                  textAlign: 'right',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={e => e.target.style.borderColor = '#10b981'}
-                onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-              />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6b7280' }}>сом</span>
-              {price === 0 && (
-                <span style={{ fontSize: '0.73rem', color: '#9ca3af' }}>бесплатно</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        <button type="submit" className="primary-btn search-btn">
+        <button type="submit" className="primary-btn submit-action-btn">
           <Search size={18} />
-          <span>{role === 'driver' ? 'Найти пассажиров' : 'Найти водителя'}</span>
-          <ArrowRight size={16} style={{ marginLeft: 'auto' }} />
+          <span>{role === 'driver' ? 'Найти пассажиров по пути' : 'Найти подходящего водителя'}</span>
+          <ArrowRight size={16} />
         </button>
       </form>
 
@@ -394,325 +418,472 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
         .dashboard {
           display: flex;
           flex-direction: column;
-          gap: 0.9rem;
+          gap: 0.85rem;
         }
 
-        /* Role segment */
-        .role-segment-wrap {
+        /* Role Switcher */
+        .role-switch-container {
           background: var(--bg-card);
           border: 1px solid var(--border-subtle);
-          border-radius: 18px;
-          padding: 14px 16px;
+          border-radius: var(--radius-md);
+          padding: 5px;
           box-shadow: var(--card-shadow);
-          transition: background-color 0.25s, border-color 0.25s;
         }
-        .role-segment-label {
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: var(--text-subtle);
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          margin-bottom: 10px;
-        }
-        .role-segment {
+        .role-switch {
           display: flex;
           background: var(--bg-subtle);
-          border: 1px solid var(--border-subtle);
-          border-radius: 14px;
-          padding: 4px;
+          border-radius: 10px;
+          padding: 3px;
           gap: 4px;
         }
-        .role-seg-btn {
+        .role-option {
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 7px;
-          padding: 11px 10px;
+          gap: 8px;
+          padding: 10px 14px;
           border: none;
-          border-radius: 11px;
+          border-radius: 8px;
           background: transparent;
           color: var(--text-muted);
-          font-size: 0.9rem;
-          font-weight: 600;
+          font-size: 0.88rem;
+          font-weight: 700;
           cursor: pointer;
-          transition: all 0.22s ease;
-          letter-spacing: 0.1px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .role-seg-btn:hover { background: var(--border-subtle); }
-        .seg-active {
-          background: var(--bg-card) !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        .role-option:hover {
+          color: var(--text-main);
         }
-        .seg-passenger.seg-active { color: #10b981; }
-        .seg-driver.seg-active { color: #f59e0b; }
+        .role-option.active {
+          background: var(--bg-card);
+          color: var(--primary);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Driver Warning */
+        .driver-warning-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: rgba(245, 158, 11, 0.08);
+          border: 1px solid rgba(245, 158, 11, 0.25);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .driver-warning-card:hover {
+          background: rgba(245, 158, 11, 0.12);
+        }
+        .warning-icon-wrap {
+          color: #f59e0b;
+          display: flex;
+          align-items: center;
+        }
+        .warning-content {
+          flex: 1;
+        }
+        .warning-title {
+          font-size: 0.84rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+        .warning-desc {
+          font-size: 0.74rem;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+        .warning-arrow {
+          color: var(--text-subtle);
+        }
 
         /* Map */
-        .mini-map-wrap {
-          border-radius: 18px;
+        .map-card {
+          border-radius: var(--radius-md);
           overflow: hidden;
           border: 1px solid var(--border-subtle);
           box-shadow: var(--card-shadow);
         }
 
         /* Form */
-        .trip-form {
-          border-radius: 18px;
+        .route-form-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-lg);
           padding: 1.25rem;
-          background: var(--bg-card);
           box-shadow: var(--card-shadow);
-          border: 1px solid var(--border-subtle);
-          transition: background-color 0.25s, border-color 0.25s;
         }
-        .form-title {
-          font-size: 0.98rem;
-          font-weight: 700;
-          color: var(--text-main);
-          margin-bottom: 1rem;
-          letter-spacing: 0.1px;
-        }
-
-        /* Route block */
-        .route-block {
-          background: var(--bg-subtle);
-          border: 1px solid var(--border-subtle);
-          border-radius: 14px;
-          overflow: hidden;
-          margin-bottom: 0.9rem;
-        }
-        .route-row {
+        .form-header {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 4px 14px;
-        }
-        .dot {
-          width: 9px; height: 9px;
-          border-radius: 50%; flex-shrink: 0;
-        }
-        .dot.green { background: #10b981; }
-        .dot.red { background: #f43f5e; }
-        .route-field { flex: 1; }
-        .route-divider-line { height: 1px; background: var(--border-subtle); margin: 0 14px; }
-        .geo-btn {
-          width: 32px; height: 32px; flex-shrink: 0;
-          border: 1px solid var(--border-subtle);
-          border-radius: 10px;
-          background: var(--bg-card);
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          color: #10b981;
-          transition: all 0.2s;
-        }
-        .geo-btn:hover:not(:disabled) { background: var(--border-subtle); border-color: #10b981; }
-        .geo-btn:disabled { color: var(--text-subtle); cursor: wait; }
-
-        /* DateTime */
-        .datetime-block {
-          border: 1px solid var(--border-subtle);
-          border-radius: 14px;
-          overflow: hidden;
+          justify-content: space-between;
           margin-bottom: 1rem;
-          background: var(--bg-subtle);
         }
-        .time-row {
+        .form-header-title {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 12px 14px;
-          border: none;
-          background: transparent;
-        }
-        .time-label { flex: 1; font-size: 0.83rem; font-weight: 500; color: var(--text-muted); }
-        .time-input {
-          border: none;
-          background: transparent;
+          gap: 8px;
           font-size: 0.95rem;
           font-weight: 700;
           color: var(--text-main);
-          outline: none;
-          cursor: pointer;
         }
-        .date-picker-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .date-label-text {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: #6366f1;
-          cursor: pointer;
-          padding: 2px 8px;
+        .swap-route-btn {
+          width: 32px;
+          height: 32px;
           border-radius: 8px;
-          transition: background 0.15s;
-        }
-        .date-label-text:hover { background: rgba(99, 102, 241, 0.15); }
-        .date-input-hidden {
-          position: absolute;
-          width: 100%; height: 100%;
-          opacity: 0; cursor: pointer;
-          top: 0; left: 0;
-          border: none; background: none;
-        }
-
-        .search-btn {
-          display: flex !important;
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-subtle);
+          color: var(--text-muted);
+          display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          background: linear-gradient(135deg, #10b981, #059669) !important;
-          box-shadow: 0 4px 20px rgba(16,185,129,0.3) !important;
-          font-size: 0.95rem;
-          font-weight: 700;
-          letter-spacing: 0.2px;
-          margin-top: 0;
-          border-radius: 14px !important;
-        }
-        .search-btn:hover:not(:disabled) {
-          transform: translateY(-1.5px);
-          box-shadow: 0 8px 24px rgba(16,185,129,0.42) !important;
-        }
-
-        /* Seats selector */
-        .seats-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: var(--bg-subtle);
-          border: 1px solid var(--border-subtle);
-          border-radius: 12px;
-          padding: 10px 14px;
-          margin-bottom: 1rem;
-        }
-        .seats-label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
-        .seats-btns { display: flex; gap: 6px; }
-        .seat-btn {
-          width: 36px; height: 36px;
-          border: 1.5px solid var(--border-subtle);
-          border-radius: 10px;
-          background: var(--bg-card);
-          font-size: 0.9rem;
-          font-weight: 700;
-          color: var(--text-muted);
           cursor: pointer;
-          transition: all 0.18s;
+          transition: all 0.2s ease;
         }
-        .seat-btn:hover { border-color: #10b981; color: #10b981; }
-        .seat-btn.active {
-          border-color: #10b981;
-          background: #10b981;
-          color: white;
-          box-shadow: 0 2px 8px rgba(16,185,129,0.3);
-        }
-
-        /* Quick Tags (Bishkek & Chuy) */
-        .quick-tags-wrap {
-          margin-bottom: 0.95rem;
-          background: var(--bg-subtle);
-          border: 1px solid var(--border-subtle);
-          border-radius: 14px;
-          padding: 11px 13px;
-        }
-        .quick-tags-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 8px;
-        }
-        .quick-tags-title {
-          font-size: 0.8rem;
-          font-weight: 700;
+        .swap-route-btn:hover {
+          background: var(--border-subtle);
           color: var(--text-main);
         }
-        .quick-tags-toggle {
+
+        /* Connected Route */
+        .connected-route-card {
+          display: flex;
+          align-items: stretch;
+          gap: 12px;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          padding: 10px 12px;
+          margin-bottom: 1rem;
+        }
+        .route-track-indicator {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 0;
+          width: 14px;
+          flex-shrink: 0;
+        }
+        .track-node {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          border: 2px solid var(--bg-subtle);
+        }
+        .origin-node {
+          background: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        }
+        .dest-node {
+          background: #ef4444;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        }
+        .track-line {
+          width: 2px;
+          flex: 1;
+          background: var(--border-strong);
+          margin: 4px 0;
+        }
+        .route-inputs-col {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .route-input-cell {
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+        .route-input-cell > div {
+          flex: 1;
+        }
+        .inline-geo-btn {
+          width: 32px;
+          height: 32px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          background: var(--bg-card);
+          color: var(--primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          margin-left: 6px;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+        .inline-geo-btn:hover {
+          background: var(--border-subtle);
+        }
+        .inline-geo-btn:disabled {
+          opacity: 0.5;
+          cursor: wait;
+        }
+        .input-err-msg {
+          font-size: 0.72rem;
+          color: #ef4444;
+          margin: 0;
+          padding-left: 2px;
+        }
+
+        /* Hubs */
+        .hubs-section {
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          padding: 12px;
+          margin-bottom: 1rem;
+        }
+        .hubs-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
+        .target-toggle {
           display: flex;
           background: var(--border-subtle);
-          border-radius: 8px;
+          border-radius: 6px;
           padding: 2px;
           gap: 2px;
         }
-        .tag-target-btn {
+        .target-pill {
           border: none;
           background: transparent;
           font-size: 0.72rem;
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-muted);
           padding: 3px 8px;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
           transition: all 0.15s;
         }
-        .tag-target-btn.active {
+        .target-pill.active {
           background: var(--bg-card);
           color: var(--text-main);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
-        .quick-cat-tabs {
+        .category-scroll {
           display: flex;
           gap: 6px;
           overflow-x: auto;
           margin-bottom: 10px;
-          padding-bottom: 2px;
           scrollbar-width: none;
         }
-        .quick-cat-tabs::-webkit-scrollbar { display: none; }
-        .quick-cat-btn {
-          white-space: nowrap;
+        .category-scroll::-webkit-scrollbar { display: none; }
+        .category-pill {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 10px;
           border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-pill);
           background: var(--bg-card);
           color: var(--text-muted);
-          font-size: 0.73rem;
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: 12px;
+          font-size: 0.76rem;
+          font-weight: 600;
           cursor: pointer;
+          white-space: nowrap;
           transition: all 0.18s;
-          flex-shrink: 0;
         }
-        .quick-cat-btn.active {
-          background: #10b981;
-          color: white;
-          border-color: #10b981;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+        .category-pill:hover {
+          color: var(--text-main);
+          border-color: var(--border-strong);
         }
-        .quick-tags-list {
+        .category-pill.active {
+          background: var(--primary);
+          color: #ffffff;
+          border-color: var(--primary);
+          box-shadow: 0 2px 8px var(--primary-glow);
+        }
+        .hubs-chips-scroll {
           display: flex;
           gap: 6px;
           overflow-x: auto;
-          padding-bottom: 4px;
+          padding-bottom: 2px;
           scrollbar-width: thin;
         }
-        .quick-tags-list::-webkit-scrollbar {
-          height: 4px;
-        }
-        .quick-tags-list::-webkit-scrollbar-thumb {
-          background: var(--border-strong);
-          border-radius: 4px;
-        }
-        .quick-tag-chip {
+        .hub-chip {
           white-space: nowrap;
           border: 1px solid var(--border-subtle);
           background: var(--bg-card);
           color: var(--text-main);
           font-size: 0.78rem;
           font-weight: 600;
-          padding: 5px 11px;
-          border-radius: 20px;
+          padding: 6px 12px;
+          border-radius: var(--radius-pill);
           cursor: pointer;
           transition: all 0.18s;
           flex-shrink: 0;
         }
-        .quick-tag-chip:hover {
-          border-color: #10b981;
-          color: #10b981;
+        .hub-chip:hover {
+          border-color: var(--primary);
+          color: var(--primary);
+        }
+        .hub-chip.selected {
+          background: var(--primary);
+          color: #ffffff;
+          border-color: var(--primary);
+          box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        /* DateTime */
+        .datetime-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 1rem;
+        }
+        .datetime-cell {
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .cell-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+        }
+        .date-picker-box {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .date-display {
+          font-size: 0.94rem;
+          font-weight: 700;
+          color: var(--text-main);
+          cursor: pointer;
+        }
+        .hidden-native-input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+        }
+        .time-native-input {
+          border: none;
+          background: transparent;
+          font-size: 0.94rem;
+          font-weight: 700;
+          color: var(--text-main);
+          outline: none;
+          padding: 0;
+          cursor: pointer;
+        }
+
+        /* Driver parameters */
+        .driver-parameters-card {
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 1.1rem;
+        }
+        .parameter-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .param-label-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .param-title {
+          font-size: 0.86rem;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+        .stepper-box {
+          display: flex;
+          align-items: center;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          padding: 2px;
+        }
+        .stepper-btn {
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 6px;
+          background: transparent;
+          color: var(--text-main);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .stepper-btn:hover:not(:disabled) {
           background: var(--bg-subtle);
         }
-        .quick-tag-chip.selected {
-          border-color: #10b981;
-          background: #10b981;
-          color: white;
-          box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+        .stepper-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        .stepper-value {
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: var(--text-main);
+          min-width: 28px;
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+        .price-input-wrap {
+          display: flex;
+          align-items: center;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          padding: 4px 8px;
+          gap: 6px;
+        }
+        .price-number-input {
+          width: 65px;
+          border: none;
+          background: transparent;
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: var(--text-main);
+          text-align: right;
+          outline: none;
+          font-variant-numeric: tabular-nums;
+        }
+        .currency-label {
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: var(--text-muted);
+          letter-spacing: 0.05em;
+        }
+
+        .submit-action-btn {
+          margin-top: 0.2rem;
+        }
+
+        @keyframes spin {
+          100% { transform: rotate(360deg); }
+        }
+        .spin {
+          animation: spin 0.8s linear infinite;
         }
       `}</style>
     </div>

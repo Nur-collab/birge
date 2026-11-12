@@ -33,7 +33,7 @@ const resources = {
             "nav.trips": "Поездки",
 
             // Главный экран (Dashboard)
-            "dash.greeting": "Привет, {{name}}! 👋",
+            "dash.greeting": "Привет, {{name}}",
             "dash.where_to": "Куда поедем сегодня?",
             "dash.find_ride": "Найти поездку",
             "dash.offer_ride": "Предложить поездку",
@@ -41,7 +41,7 @@ const resources = {
             "dash.unknown_location": "Ищем вас...",
 
             // Быстрые теги (Бишкек)
-            "tags.title": "Популярные районы и ЖК Бишкека",
+            "tags.title": "Популярные направления",
             "tags.hint": "Нажмите, чтобы быстро выбрать:",
             "tags.target_from": "Откуда",
             "tags.target_to": "Куда",
@@ -81,7 +81,7 @@ const resources = {
             "payment.driver_requisites": "Реквизиты водителя",
             "payment.mbank_btn": "Оплатить через MBank",
             "payment.elkart_card": "Карта Элкарт",
-            "payment.copied": "Реквизиты скопированы! ✅",
+            "payment.copied": "Реквизиты скопированы",
             "payment.open_mbank": "Перейти в MBank",
             "payment.per_seat": "за место",
             "payment.not_specified": "Водитель не заполнил реквизиты",
@@ -138,11 +138,11 @@ const resources = {
             "review.thanks": "Спасибо за отзыв!",
             "review.community": "Вы помогаете сообществу становиться лучше",
             "review.rating.0": "",
-            "review.terrible": "Ужасно 😔",
-            "review.bad": "Плохо 😕",
-            "review.ok": "Нормально 😐",
-            "review.good": "Хорошо 😊",
-            "review.great": "Отлично! 🤩"
+            "review.terrible": "Ужасно",
+            "review.bad": "Плохо",
+            "review.ok": "Нормально",
+            "review.good": "Хорошо",
+            "review.great": "Отлично"
         }
     },
     ky: {
@@ -175,7 +175,7 @@ const resources = {
             "nav.trips": "Сапарлар",
 
             // Главный экран (Dashboard)
-            "dash.greeting": "Салам, {{name}}! 👋",
+            "dash.greeting": "Салам, {{name}}",
             "dash.where_to": "Бүгүн кайда барабыз?",
             "dash.find_ride": "Жолдош издөө",
             "dash.offer_ride": "Жолго чыгуу",
@@ -183,7 +183,7 @@ const resources = {
             "dash.unknown_location": "Сизди издеп жатабыз...",
 
             // Быстрые теги (Бишкек)
-            "tags.title": "Бишкектин популярдуу конуштары жана ТК",
+            "tags.title": "Популярдуу багыттар",
             "tags.hint": "Тез тандоо үчүн басыңыз:",
             "tags.target_from": "Кайдан",
             "tags.target_to": "Каякка",
@@ -223,7 +223,7 @@ const resources = {
             "payment.driver_requisites": "Айдоочунун реквизиттери",
             "payment.mbank_btn": "MBank аркылуу төлөө",
             "payment.elkart_card": "Элкарт картасы",
-            "payment.copied": "Реквизиттер көчүрүлдү! ✅",
+            "payment.copied": "Реквизиттер көчүрүлдү",
             "payment.open_mbank": "MBank тиркемесине өтүү",
             "payment.per_seat": "орун үчүн",
             "payment.not_specified": "Айдоочу реквизиттерин жазган эмес",
@@ -280,11 +280,11 @@ const resources = {
             "review.thanks": "Пикириңиз үчүн рахмат!",
             "review.community": "Сиз коомчулукту жакшыртууга жардам бересиз",
             "review.rating.0": "",
-            "review.terrible": "Жаман 😔",
-            "review.bad": "Начар 😕",
-            "review.ok": "Жакшы 😐",
-            "review.good": "Жакшы 😊",
-            "review.great": "Мыкты! 🤩"
+            "review.terrible": "Жаман",
+            "review.bad": "Начар",
+            "review.ok": "Жакшы",
+            "review.good": "Жакшы",
+            "review.great": "Мыкты"
         }
     }
 };

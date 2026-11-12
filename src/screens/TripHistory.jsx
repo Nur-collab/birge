@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MapPin, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, CheckCircle, Clock, Car, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
@@ -83,8 +83,8 @@ export default function TripHistory({ currentUser, onBack }) {
               </div>
 
               <div className="history-footer">
-                <span className="history-role">
-                  {trip.role === 'driver' ? `🚗 ${t('matches.driver')}` : `👤 ${t('matches.passenger')}`}
+                <span className="history-role" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {trip.role === 'driver' ? <><Car size={13} /> {t('matches.driver')}</> : <><User size={13} /> {t('matches.passenger')}</>}
                 </span>
                 <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
                   {trip.price || 150} ⊆

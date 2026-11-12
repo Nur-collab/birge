@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Car, ShieldCheck, MapPin, Navigation, Clock, X, ChevronRight } from 'lucide-react';
+import { Star, Car, ShieldCheck, MapPin, Navigation, Clock, X, ChevronRight, Check } from 'lucide-react';
 
 /**
  * TripAcceptedCard — красивая карточка "Поездка принята" для пассажира.
@@ -122,7 +122,9 @@ export default function TripAcceptedCard({ trip, onDismiss }) {
         boxShadow: '0 4px 20px rgba(16,185,129,0.5)',
         zIndex: 10,
         pointerEvents: 'none',
-      }}>✓</div>
+      }}>
+        <Check size={26} color="white" strokeWidth={3} />
+      </div>
 
       {/* Основная карточка */}
       <div
@@ -249,8 +251,8 @@ export default function TripAcceptedCard({ trip, onDismiss }) {
             ПОЕЗДКА ПОДТВЕРЖДЕНА
           </div>
           <style>{`@keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#1f2937', margin: '0 0 4px 0' }}>
-            Водитель найден! 🎉
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+            Водитель найден
           </h2>
           <p style={{ color: '#6b7280', fontSize: '0.88rem', margin: 0 }}>
             Ваш водитель уже в пути
@@ -339,12 +341,13 @@ export default function TripAcceptedCard({ trip, onDismiss }) {
                   {/* Иконка машины */}
                   <div style={{
                     width: 44, height: 44, borderRadius: 12,
-                    background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.4rem', flexShrink: 0,
-                    boxShadow: '0 2px 8px rgba(245,158,11,0.2)',
+                    flexShrink: 0,
+                    color: 'var(--primary)',
                   }}>
-                    🚗
+                    <Car size={22} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1f2937', marginBottom: 6 }}>

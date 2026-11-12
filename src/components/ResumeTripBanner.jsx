@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation, Trash2, RotateCcw } from 'lucide-react';
+import { Navigation, Trash2, RotateCcw, Clock, MapPin, Car, User } from 'lucide-react';
 
 /**
  * ResumeTripBanner — всплывает снизу если у пользователя есть
@@ -13,8 +13,9 @@ import { Navigation, Trash2, RotateCcw } from 'lucide-react';
 export default function ResumeTripBanner({ trip, onResume, onDiscard }) {
   if (!trip?.found) return null;
 
-  const roleLabel = trip.role === 'driver' ? '🚗 Водитель' : '🙋 Пассажир';
-  const roleColor = trip.role === 'driver' ? '#f59e0b' : '#10b981';
+  const isDriver = trip.role === 'driver';
+  const roleLabel = isDriver ? 'Водитель' : 'Пассажир';
+  const roleColor = isDriver ? '#f59e0b' : '#10b981';
 
   return (
     <div style={styles.wrapper}>
@@ -27,13 +28,19 @@ export default function ResumeTripBanner({ trip, onResume, onDiscard }) {
         {/* Текст */}
         <div style={styles.body}>
           <div style={styles.title}>Незавершённый поиск</div>
-          <div style={styles.role}>{roleLabel}</div>
-          <div style={styles.route}>
-            <span style={styles.routeFrom}>📍 {trip.origin}</span>
-            <span style={styles.arrow}>→</span>
-            <span style={styles.routeTo}>🏁 {trip.destination}</span>
+          <div style={{ ...styles.role, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {isDriver ? <Car size={13} /> : <User size={13} />}
+            <span>{roleLabel}</span>
           </div>
-          <div style={styles.time}>🕐 {trip.time}</div>
+          <div style={styles.route}>
+            <span style={styles.routeFrom}>{trip.origin}</span>
+            <span style={styles.arrow}>→</span>
+            <span style={styles.routeTo}>{trip.destination}</span>
+          </div>
+          <div style={{ ...styles.time, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} />
+            <span>{trip.time}</span>
+          </div>
         </div>
 
         {/* Кнопки */}

@@ -121,7 +121,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
 
   const sendGoingMessage = async () => {
     try {
-      await api.sendChatMessage(chatRoomId, '🚗 Выезжаю! Буду через ~5 минут. Выходите ✅');
+      await api.sendChatMessage(chatRoomId, 'Выезжаю! Буду ориентировочно через 5 минут. Пожалуйста, выходите.');
       setGoingNotified(true);
     } catch (_) {
       // Не показываем ложный успех, если сообщение не доставлено.
@@ -168,8 +168,8 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
       <div className="trip-header glass-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '3px' }}>🚗 {t('trip.title')}</h2>
-            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{trip.date || 'Сегодня'} · {trip.time}</div>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '3px', fontWeight: 800 }}>{t('trip.title')}</h2>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{trip.date || 'Сегодня'} · {trip.time}</div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               background: isScheduled ? '#ede9fe' : '#d1fae5',
@@ -233,14 +233,14 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
             {isScheduled ? (
               <div style={{
                 textAlign: 'center',
-                background: '#f5f3ff',
+                background: 'var(--bg-subtle)',
                 borderRadius: 12,
                 padding: '10px 14px',
                 fontSize: '0.82rem',
-                color: '#7c3aed',
-                fontWeight: 500,
+                color: 'var(--text-muted)',
+                fontWeight: 600,
               }}>
-                🕐 Кнопка "Выезжаю!" будет доступна в день поездки
+                Кнопка «Выезжаю» станет активна в день отправления
               </div>
             ) : (
               <button
@@ -248,7 +248,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
                 disabled={goingNotified || passengers.length === 0}
                 onClick={sendGoingMessage}
               >
-                {goingNotified ? '✅ Уведомление отправлено!' : <><Zap size={15} /> Уведомить всех — Выезжаю!</>}
+                {goingNotified ? 'Уведомление отправлено' : <><Zap size={15} /> Уведомить всех — Выезжаю</>}
               </button>
             )}
           </div>
@@ -438,8 +438,8 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
           </div>
 
           {copied && (
-            <p style={{ fontSize: '0.78rem', color: '#047857', textAlign: 'center', margin: 0, fontWeight: 500 }}>
-              ✅ Номер {driverPayment.mbankPhone} скопирован в буфер! Открываем MBank...
+            <p style={{ fontSize: '0.78rem', color: 'var(--primary)', textAlign: 'center', margin: 0, fontWeight: 600 }}>
+              Номер {driverPayment.mbankPhone} скопирован в буфер. Открываем MBank...
             </p>
           )}
         </div>
@@ -460,12 +460,12 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
                 width: '100%',
                 padding: '13px 20px',
                 background: cancelConfirm
-                  ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
-                  : '#fff1f2',
-                color: cancelConfirm ? 'white' : '#dc2626',
-                border: `1.5px solid ${cancelConfirm ? '#dc2626' : '#fecdd3'}`,
-                borderRadius: 16,
-                fontSize: '0.95rem',
+                  ? '#dc2626'
+                  : 'rgba(239,68,68,0.1)',
+                color: cancelConfirm ? 'white' : '#ef4444',
+                border: `1.5px solid ${cancelConfirm ? '#dc2626' : 'rgba(239,68,68,0.2)'}`,
+                borderRadius: 14,
+                fontSize: '0.92rem',
                 fontWeight: 700,
                 cursor: cancelling ? 'wait' : 'pointer',
                 transition: 'all 0.2s',
@@ -478,11 +478,11 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
               {cancelling
                 ? 'Отменяем...'
                 : cancelConfirm
-                ? '❗ Нажмите ещё раз для подтверждения'
+                ? 'Нажмите еще раз для подтверждения'
                 : 'Отменить поездку'}
             </button>
             {cancelError && (
-              <p style={{ color: '#dc2626', fontSize: '0.78rem', margin: 0, textAlign: 'center' }}>
+              <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: 0, textAlign: 'center' }}>
                 {cancelError}
               </p>
             )}
@@ -492,7 +492,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
         {/* Завершить — только в день поездки */}
         {!isScheduled && (
           <button className="primary-btn finish-btn" onClick={onFinish}>
-            {isDriver ? 'Завершить поездку' : 'Приехали ✅'}
+            {isDriver ? 'Завершить поездку' : 'Поездка завершена'}
           </button>
         )}
 

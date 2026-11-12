@@ -31,11 +31,11 @@ export default function ColdStartSplash({ attempt = 1, maxAttempts = 20 }) {
 
   const getTip = () => {
     const tips = [
-      '🚗 Birge — совместные поездки по Бишкеку',
-      '💚 Экономьте до 60% на дороге вместе',
-      '⭐ Рейтинг доверия защитит вас в пути',
-      '📅 Планируйте поездки заранее',
-      '💬 Чат с водителем прямо в приложении',
+      'Birge — совместные городские и пригородные поездки',
+      'Разделяйте расходы на бензин и поездки вместе',
+      'Рейтинг доверия защитит вас в пути',
+      'Планируйте поездки заранее на нужный день',
+      'Прямой чат с водителем и попутчиками в приложении',
     ];
     return tips[attempt % tips.length];
   };
@@ -50,14 +50,14 @@ export default function ColdStartSplash({ attempt = 1, maxAttempts = 20 }) {
         {/* Логотип */}
         <div style={styles.logoWrap}>
           <div style={styles.logoRing}>
-            <span style={styles.logoEmoji}>🚗</span>
+            <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#10b981' }}>B</span>
           </div>
           <div style={styles.ripple} />
           <div style={{ ...styles.ripple, animationDelay: '0.6s', opacity: 0.5 }} />
         </div>
 
-        <h1 style={styles.title}>Birge</h1>
-        <p style={styles.subtitle}>Попутчики по Бишкеку</p>
+        <h1 style={styles.title}>BIRGE</h1>
+        <p style={styles.subtitle}>Совместные поездки по Кыргызстану</p>
 
         {/* Статус */}
         <div style={styles.statusBox}>

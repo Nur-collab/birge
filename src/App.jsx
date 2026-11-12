@@ -192,7 +192,7 @@ function App() {
         setIncomingRequest(newReq);
         playNotificationSound();
         if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-          new Notification('🙋 Новый запрос на поездку!', {
+          new Notification('Новый запрос на поездку', {
             body: `${newReq.requester_name} хочет присоединиться`,
             icon: '/pwa-192x192.png',
           });
@@ -253,27 +253,29 @@ function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
-        <div className="login-logo-badge" style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800 }}>Б</div>
-        <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>Проверяем сессию...</p>
+      <div style={{ minHeight: '100dvh', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>B</div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Инициализация сессии...</p>
       </div>
     );
   }
 
   if (authError) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: '2.5rem' }}>📡</div>
-        <h2 style={{ margin: 0, color: '#111827' }}>Нет связи с сервером</h2>
-        <p style={{ color: '#6b7280', fontSize: '0.9rem', maxWidth: 340 }}>
-          Не удалось загрузить профиль. Проверьте интернет и повторите — сессия сохранена.
+      <div style={{ minHeight: '100dvh', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(239,68,68,0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Sun size={26} />
+        </div>
+        <h2 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem', fontWeight: 800 }}>Нет связи с сервером</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: 320, lineHeight: 1.5 }}>
+          Не удалось загрузить профиль. Проверьте подключение к интернету. Сессия сохранена.
         </p>
         <button
           className="primary-btn"
-          style={{ width: 'auto', padding: '11px 28px' }}
+          style={{ width: 'auto', padding: '11px 28px', marginTop: 8 }}
           onClick={() => { setAuthLoading(true); setAuthRetry(n => n + 1); }}
         >
-          Повторить
+          Повторить попытку
         </button>
       </div>
     );
@@ -365,7 +367,7 @@ function App() {
         setIsSearching(false);
 
         if (mappedMatches.length > 0) {
-          showNotification('Найдены попутчики! 🎉', `Совпадений: ${mappedMatches.length}`);
+          showNotification('Найдены попутчики', `Совпадений: ${mappedMatches.length}`);
         } else {
           showNotification('Пока нет совпадений', 'Мы уведомим вас, когда кто-то появится.');
         }
@@ -409,7 +411,7 @@ function App() {
 
     // Если водитель уже в поездке — просто приняли запрос, polling обновит список
     if (activeTrip) {
-      showNotification('Пассажир принят! 👋', `${acceptedReq?.requester_name} едет с вами`);
+      showNotification('Пассажир принят', `${acceptedReq?.requester_name} едет с вами`);
       return;
     }
 
@@ -455,9 +457,9 @@ function App() {
     setActiveTab('trip');
     setUnreadCount(0);
     const msg = isScheduled
-      ? `Поездка с ${trip.user?.name || 'попутчиком'} запланирована!`
+      ? `Поездка с ${trip.user?.name || 'попутчиком'} запланирована`
       : `Вы едете с ${trip.user?.name || 'попутчиком'}`;
-    showNotification(isScheduled ? '📅 Запланировано!' : 'Мэтч найден! 🎉', msg);
+    showNotification(isScheduled ? 'Запланировано' : 'Попутчик найден', msg);
   };
 
   // При acceptе пассажир тоже получает данные машины водителя через requestInfo
@@ -482,9 +484,9 @@ function App() {
     setActiveTab('trip');
     setUnreadCount(0);
     const msg = isScheduled
-      ? `Поездка с водителем запланирована!`
+      ? `Поездка с водителем запланирована`
       : `Вы едете с ${trip.user?.name || 'попутчиком'}`;
-    showNotification(isScheduled ? '📅 Запланировано!' : 'Мэтч найден! 🎉', msg);
+    showNotification(isScheduled ? 'Запланировано' : 'Попутчик найден', msg);
   };
 
   const handleFinishTrip = () => {
@@ -567,7 +569,7 @@ function App() {
                 // Отправляем реальный тревожный сигнал в Telegram поддержки
                 const result = await api.sendPanic(activeTrip?.id);
                 if (result?.sent) {
-                  showNotification('🚨 Тревога отправлена!', 'Команда поддержки уведомлена через Telegram.');
+                  showNotification('Сигнал тревоги отправлен', 'Команда поддержки уведомлена.');
                 } else {
                   showNotification('Не удалось отправить тревогу', result?.reason || 'Проверьте связь или позвоните 102.');
                 }
@@ -659,15 +661,19 @@ function App() {
 
       <header className="header" style={{ display: (activeTab === 'profile' || activeTab === 'settings' || activeTab === 'history') ? 'none' : 'block' }}>
         <div className="header-inner">
-          <div className="header-logo">
-            <div className="header-logo-badge">Б</div>
-            <span className="header-title">BIRGE</span>
+          <div className="header-brand" onClick={() => handleTabChange('home')}>
+            <div className="header-brand-mark">B</div>
+            <div className="header-brand-text">
+              <span className="header-brand-title">BIRGE</span>
+              <span className="header-brand-subtitle">CARPOOL</span>
+            </div>
           </div>
           <div className="header-actions">
             {currentUser && (
-              <span className="header-greeting">
-                {currentUser.name?.split(' ')[0] || 'Привет'} 👋
-              </span>
+              <div className="header-user-badge">
+                <span className="status-indicator-dot" />
+                <span>{currentUser.name?.split(' ')[0] || 'Профиль'}</span>
+              </div>
             )}
             <button
               type="button"
@@ -738,7 +744,7 @@ function App() {
           backdrop-filter: blur(24px);
           -webkit-backdrop-filter: blur(24px);
           border: 1px solid var(--nav-border);
-          border-radius: 28px;
+          border-radius: var(--radius-lg);
           box-shadow: var(--floating-shadow);
           display: flex;
           justify-content: space-around;
@@ -750,11 +756,11 @@ function App() {
           flex: 1;
           display: flex; flex-direction: column; align-items: center;
           gap: 3px; background: none; border: none; color: var(--text-subtle);
-          font-size: 0.68rem; font-weight: 600; cursor: pointer;
+          font-size: 0.68rem; font-weight: 700; cursor: pointer;
           position: relative; transition: all 0.2s;
-          padding: 9px 6px 8px;
-          border-radius: 20px;
-          letter-spacing: 0.2px;
+          padding: 8px 6px;
+          border-radius: 12px;
+          letter-spacing: 0.02em;
         }
         .nav-item:hover { color: var(--text-main); background: var(--bg-subtle); }
         .nav-item.active {
@@ -762,24 +768,19 @@ function App() {
           background: var(--nav-active-bg);
         }
         .badge {
-          position: absolute; top: 2px; right: 12px;
-          background: #f43f5e; color: white; font-size: 0.62rem;
-          font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px;
+          position: absolute; top: 4px; right: 14px;
+          background: #ef4444; color: white; font-size: 0.62rem;
+          font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
           padding: 0 4px; border: 2px solid var(--bg-app);
-          box-shadow: 0 2px 6px rgba(244,63,94,0.4);
+          font-variant-numeric: tabular-nums;
         }
         .badge.dot {
-          width: 8px; height: 8px; min-width: unset; right: 14px; padding: 0;
-          top: 4px;
+          width: 7px; height: 7px; min-width: unset; right: 18px; padding: 0;
+          top: 6px; background: #10b981;
         }
         .badge.incoming-badge {
           background: #f59e0b;
-          animation: pulse-badge 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-badge {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.25); }
         }
       `}</style>
       {/* Модал входящего запроса для водителя */}

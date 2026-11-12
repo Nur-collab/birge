@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Star, CheckCircle, Clock, Car, Send, Loader, Calendar } from 'lucide-react';
+import { Star, CheckCircle, Clock, Car, Send, Loader, Calendar, MapPin, Navigation, X, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SkeletonCard from '../components/SkeletonCard';
 import { api, API_URL } from '../utils/api';
@@ -21,10 +21,10 @@ const tomorrow = localDateStr(1);
 
 const formatChipLabel = (d) => {
   if (!d) return 'Без даты';
-  if (d === today) return '📅 Сегодня';
-  if (d === tomorrow) return '📅 Завтра';
+  if (d === today) return 'Сегодня';
+  if (d === tomorrow) return 'Завтра';
   const dt = new Date(d);
-  return '📅 ' + dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 };
 
 export default function Matches({ matches = [], setMatches, onConnect, onCancel, isLoading = false, searchCriteria, currentUser, myTripId }) {
@@ -187,13 +187,13 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
           <button
             onClick={onCancel}
             style={{
-              background: '#fee2e2', color: '#dc2626', border: 'none',
-              padding: '7px 14px', borderRadius: 10, fontWeight: 600,
+              background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+              padding: '7px 14px', borderRadius: 8, fontWeight: 700,
               fontSize: '0.82rem', cursor: 'pointer', display: 'flex',
               alignItems: 'center', gap: 5,
             }}
           >
-            ✕ Отмена
+            <X size={14} /> Отмена
           </button>
         </div>
         <div className="matches-list"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
@@ -204,18 +204,18 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
   if (matches.length === 0) {
     return (
       <div className="matches screen-content glass-panel" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-        <Clock size={48} color="#9ca3af" style={{ margin: '0 auto 1rem auto' }} />
-        <h3>{t('matches.empty')}</h3>
-        <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Ищем попутчиков, подождите...</p>
+        <Clock size={40} color="var(--text-subtle)" style={{ margin: '0 auto 1rem auto' }} />
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 6 }}>{t('matches.empty')}</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1.5rem' }}>Ищем подходящих попутчиков по маршруту...</p>
         <button
           onClick={onCancel}
           style={{
-            background: '#fee2e2', color: '#dc2626', border: 'none',
-            padding: '10px 24px', borderRadius: 12, fontWeight: 600,
-            fontSize: '0.9rem', cursor: 'pointer',
+            background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '10px 24px', borderRadius: 10, fontWeight: 700,
+            fontSize: '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6
           }}
         >
-          ✕ Отменить поиск
+          <X size={15} /> Отменить поиск
         </button>
       </div>
     );
@@ -224,23 +224,23 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
   return (
     <div className="matches screen-content">
       {requestError && (
-        <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', marginBottom: 10 }}>
+        <div style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, padding: '10px 14px', fontSize: '0.84rem', fontWeight: 600, marginBottom: 12 }}>
           {requestError}
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <h2 style={{ color: 'var(--dark)', margin: 0 }}>
-          {isDriver ? 'Запросы пассажиров' : 'Найденные водители'}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+          {isDriver ? 'Запросы пассажиров' : 'Доступные водители'}
         </h2>
         <button
           onClick={onCancel}
           style={{
-            background: '#fee2e2', color: '#dc2626', border: 'none',
-            padding: '7px 14px', borderRadius: 10, fontWeight: 600,
-            fontSize: '0.82rem', cursor: 'pointer',
+            background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '7px 12px', borderRadius: 8, fontWeight: 700,
+            fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
           }}
         >
-          ✕ Отменить
+          <X size={13} /> Отменить
         </button>
       </div>
 
@@ -293,22 +293,22 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                   {trip.date && (
                     <div className="date-badge">
                       <Calendar size={10} />
-                      {formatChipLabel(trip.date).replace('📅 ', '')}
+                      {formatChipLabel(trip.date)}
                     </div>
                   )}
                   {/* Цена за место */}
                   {trip.role === 'driver' && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 3,
-                      background: trip.price_per_seat > 0 ? '#f0fdf4' : '#f9fafb',
-                      border: `1px solid ${trip.price_per_seat > 0 ? '#bbf7d0' : '#e5e7eb'}`,
-                      borderRadius: 10, padding: '2px 8px',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 8, padding: '2px 8px',
                     }}>
                       <span style={{
                         fontSize: '0.72rem', fontWeight: 700,
-                        color: trip.price_per_seat > 0 ? '#059669' : '#9ca3af',
+                        color: trip.price_per_seat > 0 ? 'var(--primary)' : 'var(--text-muted)',
                       }}>
-                        {trip.price_per_seat > 0 ? `~${trip.price_per_seat} сом` : 'Договориться'}
+                        {trip.price_per_seat > 0 ? `${trip.price_per_seat} сом` : 'Договориться'}
                       </span>
                     </div>
                   )}
@@ -317,19 +317,28 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
               {/* Маршрут */}
               <div className="match-route">
-                <div className="route-point">📍 {trip.from}</div>
+                <div className="route-point">
+                  <MapPin size={13} className="text-primary" />
+                  <span>{trip.from}</span>
+                </div>
                 <div className="route-divider"></div>
-                <div className="route-point">🏁 {trip.to}</div>
+                <div className="route-point">
+                  <Navigation size={13} className="text-danger" />
+                  <span>{trip.to}</span>
+                </div>
               </div>
 
               {/* Кнопка — разная в зависимости от роли */}
               {isDriver ? (
                 <div style={{
-                  textAlign: 'center', padding: '10px',
-                  background: '#f0fdf4', borderRadius: '10px',
-                  color: '#059669', fontSize: '0.85rem', fontWeight: 500
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  textAlign: 'left', padding: '10px 12px',
+                  background: 'var(--bg-subtle)', borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--primary)', fontSize: '0.82rem', fontWeight: 600
                 }}>
-                  ✅ Совпадение найдено! Дождитесь запроса от пассажира — появится всплывающее окно.
+                  <CheckCircle2 size={16} />
+                  <span>Совпадение найдено. Ожидайте запрос от попутчика.</span>
                 </div>
               ) : (
                 <button
@@ -338,7 +347,7 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                   disabled={!!status}
                   style={{
                     background: status === 'accepted' ? '#10b981'
-                      : status === 'declined' ? '#f43f5e'
+                      : status === 'declined' ? '#ef4444'
                         : status === 'pending' ? '#f59e0b'
                           : 'var(--primary)',
                     color: 'white',
@@ -348,10 +357,10 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
                   }}
                 >
                   {status === 'sending' && <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />}
-                  {status === 'pending' && '⏳ Ожидание ответа...'}
-                  {status === 'accepted' && '✅ Принят! Открываем чат...'}
-                  {status === 'declined' && '❌ Отклонён'}
-                  {!status && <><Send size={16} /> Запросить поездку</>}
+                  {status === 'pending' && 'Ожидание ответа водителя...'}
+                  {status === 'accepted' && 'Принят. Открываем чат...'}
+                  {status === 'declined' && 'Отклонен'}
+                  {!status && <><Send size={15} /> Запросить поездку</>}
                 </button>
               )}
             </div>

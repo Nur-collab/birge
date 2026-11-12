@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, MapPin, Navigation, Clock, Users, Car,
-  Star, ShieldCheck, ChevronRight, RefreshCw, Trash2, ArrowRight
+  Star, ShieldCheck, ChevronRight, RefreshCw, Trash2, ArrowRight, Plus
 } from 'lucide-react';
 import { api } from '../utils/api';
 import { localDateStr } from '../utils/date';
@@ -87,7 +87,7 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
     return (
       <div className="sched-screen">
         <div className="sched-header">
-          <h2 className="sched-title">📅 Запланированные поездки</h2>
+          <h2 className="sched-title">Запланированные поездки</h2>
         </div>
         <div className="sched-skeleton-list">
           {[1, 2].map(i => (
@@ -105,14 +105,14 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
   return (
     <div className="sched-screen">
       {error && (
-        <div style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem' }}>
+        <div style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem' }}>
           {error}
         </div>
       )}
       {/* Заголовок */}
       <div className="sched-header">
         <div>
-          <h2 className="sched-title">📅 Запланированные</h2>
+          <h2 className="sched-title">Запланированные</h2>
           <p className="sched-subtitle">
             {trips.length > 0
               ? `${trips.length} предстоящих поездок`
@@ -131,14 +131,17 @@ export default function ScheduledTrips({ currentUser, onOpenTrip, onCancel }) {
       {trips.length === 0 ? (
         /* Пустой стейт */
         <div className="sched-empty">
-          <div className="sched-empty-icon">🗓️</div>
+          <div className="sched-empty-icon">
+            <Calendar size={36} color="var(--text-subtle)" />
+          </div>
           <h3 className="sched-empty-title">Пока пусто</h3>
           <p className="sched-empty-text">
             Запланируйте поездку на завтра или следующую неделю —
             она появится здесь автоматически
           </p>
-          <button className="primary-btn sched-cta-btn" onClick={onCancel}>
-            ➕ Запланировать поездку
+          <button className="primary-btn sched-cta-btn" onClick={onCancel} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Plus size={16} />
+            <span>Запланировать поездку</span>
           </button>
         </div>
       ) : (

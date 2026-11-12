@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WifiOff } from 'lucide-react';
+import { WifiOff, CheckCircle2 } from 'lucide-react';
 
 /**
  * OfflineIndicator — показывает toast-баннер когда пропадает интернет.
@@ -65,7 +65,7 @@ export default function OfflineIndicator() {
       >
         {isOnline ? (
           <>
-            <span>✅</span>
+            <CheckCircle2 size={16} />
             <span>Соединение восстановлено</span>
           </>
         ) : (

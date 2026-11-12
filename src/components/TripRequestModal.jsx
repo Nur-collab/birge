@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Star, Check, X, MapPin, Clock } from 'lucide-react';
+import { Star, Check, X, MapPin, Clock, User } from 'lucide-react';
 
 const AUTO_DECLINE_SECONDS = 30;
 
@@ -79,19 +79,20 @@ export default function TripRequestModal({ request, onAccept, onDecline }) {
                 {/* Иконка-пульс */}
                 <div style={{ textAlign: 'center', marginBottom: '1.2rem', paddingTop: '0.5rem' }}>
                     <div style={{
-                        width: 60, height: 60, borderRadius: '50%',
+                        width: 56, height: 56, borderRadius: '50%',
                         background: urgency
-                            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                            ? '#dc2626'
                             : 'linear-gradient(135deg, #10b981, #059669)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 0.75rem',
-                        fontSize: '1.75rem',
                         animation: urgency ? 'urgentPulse 1s ease-in-out infinite' : 'ringPulse 2s ease-in-out infinite',
-                    }}>🙋</div>
-                    <h3 style={{ color: '#1f2937', margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
-                        Новый запрос на поездку!
+                    }}>
+                        <User size={26} color="white" />
+                    </div>
+                    <h3 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                        Новый запрос на поездку
                     </h3>
-                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginTop: '4px' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
                         Пассажир хочет присоединиться
                     </p>
                     {/* Таймер */}
@@ -99,12 +100,12 @@ export default function TripRequestModal({ request, onAccept, onDecline }) {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         marginTop: '6px',
                         padding: '4px 12px', borderRadius: '20px',
-                        background: urgency ? '#fef2f2' : '#f0fdf4',
-                        color: urgency ? '#ef4444' : '#059669',
+                        background: urgency ? 'rgba(239,68,68,0.1)' : 'var(--bg-subtle)',
+                        color: urgency ? '#ef4444' : 'var(--primary)',
                         fontSize: '0.82rem', fontWeight: 700,
                     }}>
                         <Clock size={13} />
-                        {urgency ? `⚡ Ответьте за ${timeLeft} сек!` : `Автоотклонение через ${timeLeft} сек`}
+                        {urgency ? `Ответьте за ${timeLeft} сек` : `Автоотклонение через ${timeLeft} сек`}
                     </div>
                 </div>
 

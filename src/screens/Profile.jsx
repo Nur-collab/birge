@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert, ExternalLink, FileText } from 'lucide-react';
+import { ShieldCheck, Star, Car, Settings, LogOut, ChevronRight, Loader, Clock, ShieldAlert, ExternalLink, FileText, RotateCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 
@@ -193,47 +193,51 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* Иконка машины */}
             <div style={{
-              width: 56, height: 56, borderRadius: 14,
-              background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+              width: 52, height: 52, borderRadius: 12,
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-subtle)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.8rem', flexShrink: 0,
-            }}>🚗</div>
+              color: 'var(--primary)', flexShrink: 0,
+            }}>
+              <Car size={24} />
+            </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1f2937' }}>{user.car_model}</div>
+              <div style={{ fontWeight: 700, fontSize: '0.96rem', color: 'var(--text-main)' }}>{user.car_model}</div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
                 {user.car_color && (
                   <span style={{
-                    background: '#f0fdf4', color: '#059669',
+                    background: 'var(--bg-subtle)', color: 'var(--primary)',
                     padding: '3px 10px', borderRadius: 20,
                     fontSize: '0.78rem', fontWeight: 600,
-                    border: '1px solid #d1fae5',
+                    border: '1px solid var(--border-subtle)',
                   }}>
                     {user.car_color}
                   </span>
                 )}
                 {user.car_plate && (
                   <span style={{
-                    background: '#1f2937', color: 'white',
-                    padding: '3px 12px', borderRadius: 6,
-                    fontSize: '0.82rem', fontWeight: 700,
+                    background: 'var(--bg-subtle)', color: 'var(--text-main)',
+                    padding: '3px 10px', borderRadius: 6,
+                    fontSize: '0.8rem', fontWeight: 800,
                     letterSpacing: '1px', fontFamily: 'monospace',
+                    border: '1px solid var(--border-strong)',
                   }}>
                     {user.car_plate.toUpperCase()}
                   </span>
                 )}
               </div>
             </div>
-            <ChevronRight size={18} color="#9ca3af" style={{ alignSelf: 'center' }} />
+            <ChevronRight size={18} color="var(--text-subtle)" style={{ alignSelf: 'center' }} />
           </div>
         ) : (
           <div style={{
             marginTop: '10px', padding: '14px', borderRadius: 12,
-            background: '#fffbeb', border: '1.5px dashed #fcd34d',
+            background: 'var(--bg-subtle)', border: '1.5px dashed var(--border-subtle)',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🚗</div>
-            <p style={{ fontSize: '0.85rem', color: '#92400e', fontWeight: 500, margin: 0 }}>
-              Добавьте данные машины — пассажиры увидят их перед поездкой
+            <Car size={24} color="var(--text-muted)" style={{ margin: '0 auto 6px auto', display: 'block' }} />
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+              Добавьте данные автомобиля — они будут видны попутчикам
             </p>
           </div>
         )}
@@ -244,19 +248,20 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-            background: user.is_verified ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#e5e7eb,#d1d5db)',
+            background: user.is_verified ? 'linear-gradient(135deg,#10b981,#059669)' : 'var(--bg-subtle)',
+            border: user.is_verified ? 'none' : '1px solid var(--border-subtle)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <ShieldCheck size={20} color="white" />
+            <ShieldCheck size={20} color={user.is_verified ? 'white' : 'var(--text-muted)'} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1f2937' }}>
-              {user.is_verified ? '✅ Аккаунт верифицирован' : 'Верификация аккаунта'}
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+              {user.is_verified ? 'Аккаунт верифицирован' : 'Верификация аккаунта'}
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 2 }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
               {user.is_verified
-                ? 'Другие пользователи видят значок доверия на вашем профиле'
-                : 'Повышает доверие — значок ✅ виден всем попутчикам'}
+                ? 'Другие пользователи видят подтвержденный статус на вашем профиле'
+                : 'Повышает доверие — значок проверки виден всем попутчикам'}
             </div>
           </div>
         </div>
@@ -323,7 +328,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
                 {verifyLoading
                   ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Проверяем...</>
                   : verifyResult?.status === 'need_telegram'
-                  ? '🔄 Проверить снова'
+                  ? <><RotateCw size={15} /> Проверить снова</>
                   : <><ShieldCheck size={16} /> Верифицировать через Telegram</>}
               </button>
             )}
