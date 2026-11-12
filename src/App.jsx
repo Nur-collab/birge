@@ -14,6 +14,7 @@ import PushNotification from './components/PushNotification';
 import ReviewModal from './components/ReviewModal';
 import TripRequestModal from './components/TripRequestModal';
 import ResumeTripBanner from './components/ResumeTripBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import { api, tokenStorage } from './utils/api';
 import { localDateStr } from './utils/date';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -689,7 +690,9 @@ function App() {
       </header>
 
       <main className="main-content">
-        {renderScreen()}
+        <ErrorBoundary key={activeTab}>
+          {renderScreen()}
+        </ErrorBoundary>
       </main>
 
       <InstallPWA />
