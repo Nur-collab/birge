@@ -518,6 +518,9 @@ function App() {
     setTimeout(() => {
       setShowReview(false);
       setActiveTrip(null);
+      setMatches([]);
+      setSearchCriteria(null);
+      setMyTripId(null);
       setActiveTab('home');
     }, 1500);
   };
@@ -530,12 +533,18 @@ function App() {
     }
     setShowReview(false);
     setActiveTrip(null);
+    setMatches([]);
+    setSearchCriteria(null);
+    setMyTripId(null);
     setActiveTab('home');
     showNotification('Поездка завершена', 'До следующей встречи!');
   };
 
   const handleTripCancelled = () => {
     setActiveTrip(null);
+    setMatches([]);
+    setSearchCriteria(null);
+    setMyTripId(null);
     setActiveTab('home');
     showNotification('Поездка отменена', 'Вы можете найти нового попутчика.');
   };
@@ -555,6 +564,8 @@ function App() {
             searchCriteria={searchCriteria}
             currentUser={currentUser}
             myTripId={myTripId}
+            activeTrip={activeTrip}
+            onGoToActiveTrip={() => setActiveTab('trip')}
           />
         );
       case 'trip':

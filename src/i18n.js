@@ -55,7 +55,7 @@ const resources = {
             "search.create_btn": "Создать",
 
             // Совпадения (Matches)
-            "matches.title": "Ваши поездки",
+            "matches.title": "Попутчики",
             "matches.empty": "Пока нет подходящих поездок",
             "matches.searching": "Ищем совпадения...",
             "matches.trip": "Поездка",
@@ -197,7 +197,7 @@ const resources = {
             "search.create_btn": "Түзүү",
 
             // Совпадения (Matches)
-            "matches.title": "Сиздин сапарларыңыз",
+            "matches.title": "Жолдоштор",
             "matches.empty": "Учурда ылайыктуу сапарлар жок",
             "matches.searching": "Издеп жатабыз...",
             "matches.trip": "Сапар",

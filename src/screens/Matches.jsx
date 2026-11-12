@@ -27,7 +27,18 @@ const formatChipLabel = (d) => {
   return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 };
 
-export default function Matches({ matches = [], setMatches, onConnect, onCancel, isLoading = false, searchCriteria, currentUser, myTripId }) {
+export default function Matches({
+  matches = [],
+  setMatches,
+  onConnect,
+  onCancel,
+  isLoading = false,
+  searchCriteria,
+  currentUser,
+  myTripId,
+  activeTrip,
+  onGoToActiveTrip,
+}) {
   const { t } = useTranslation();
   const [requestStatus, setRequestStatus] = useState({}); // { [tripId]: 'pending'|'accepted'|'declined' }
   const [requestError, setRequestError] = useState('');
@@ -70,26 +81,26 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
           currentUser.id, searchCriteria.role, searchCriteria.from,
           searchCriteria.to, searchCriteria.time, 1, searchCriteria.date || null
         );
-        if (found.length > 0) {
-          const mapped = found.map(m => ({
-            id: m.id, role: m.role,
-            from: m.origin, to: m.destination,
-            origin: m.origin, destination: m.destination,
-            time: m.time, date: m.date || null,
-            price_per_seat: m.price_per_seat || 0,
-            userId: m.user_id, user_id: m.user_id,
-            user: {
-              id: m.user?.id, name: m.user?.name || 'Пользователь',
-              photo: m.user?.photo || `https://i.pravatar.cc/150?u=${m.user_id}`,
-              trust_rating: m.user?.trust_rating || 5.0,
-              is_verified: m.user?.is_verified || false,
-              car_model: m.user?.car_model || null
-            }
-          }));
-          setMatches(mapped);
-        }
+        const mapped = (found || []).map(m => ({
+          id: m.id, role: m.role,
+          from: m.origin, to: m.destination,
+          origin: m.origin, destination: m.destination,
+          time: m.time, date: m.date || null,
+          price_per_seat: m.price_per_seat || 0,
+          userId: m.user_id, user_id: m.user_id,
+          user: {
+            id: m.user?.id, name: m.user?.name || 'Пользователь',
+            photo: m.user?.photo || `https://i.pravatar.cc/150?u=${m.user_id}`,
+            trust_rating: m.user?.trust_rating || 5.0,
+            is_verified: m.user?.is_verified || false,
+            car_model: m.user?.car_model || null
+          }
+        }));
+        // Всегда обновляем: если водитель/пассажир завершил поездку и бэкенд вернул 0,
+        // список очищается, убирая завершенных попутчиков из интерфейса
+        setMatches(mapped);
       } catch (e) { console.error('Auto-poll error:', e); }
-    }, 10000);
+    }, 6000);
     return () => clearInterval(pollInterval);
   }, [isLoading, searchCriteria, currentUser, setMatches]);
 
@@ -178,6 +189,58 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
   };
 
   const isDriver = searchCriteria?.role === 'driver';
+
+  if (activeTrip) {
+    return (
+      <div className="matches screen-content">
+        <div className="glass-panel" style={{ padding: '24px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(16, 185, 129, 0.1)', color: 'var(--primary)', padding: '6px 14px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, marginBottom: 16 }}>
+            <CheckCircle2 size={14} />
+            <span>{activeTrip.isScheduled ? 'Запланированная поездка' : 'Поездка в процессе'}</span>
+          </div>
+
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: 8 }}>
+            {activeTrip.origin} → {activeTrip.destination}
+          </h3>
+
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20, maxWidth: 360, margin: '0 auto 20px auto' }}>
+            {activeTrip.role === 'passenger'
+              ? `Вы уже едете с водителем ${activeTrip.user?.name || activeTrip.driverName || 'водителем'}. Чат и статус поездки открыты во вкладке «В пути».`
+              : `Поездка сформирована. Занято мест: ${activeTrip.seats_taken || 1} из ${activeTrip.seats || 3}. Управление поездкой доступно во вкладке «В пути».`}
+          </p>
+
+          <button
+            type="button"
+            onClick={onGoToActiveTrip}
+            className="primary-btn"
+            style={{ width: '100%', maxWidth: 320, margin: '0 auto', padding: '12px', borderRadius: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          >
+            <span>Перейти к поездке</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!searchCriteria && matches.length === 0) {
+    return (
+      <div className="matches screen-content glass-panel" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius)', border: '1px solid var(--border-subtle)' }}>
+        <Navigation size={42} color="var(--primary)" style={{ margin: '0 auto 1rem auto' }} />
+        <h3 style={{ fontSize: '1.18rem', fontWeight: 800, marginBottom: 8, color: 'var(--text-main)' }}>Нет активного поиска</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1.5rem', maxWidth: 320, margin: '0 auto 1.5rem auto' }}>
+          Укажите откуда и куда вы едете на главном экране, чтобы Birge подобрал подходящих попутчиков.
+        </p>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="primary-btn"
+          style={{ width: 'auto', padding: '10px 24px', borderRadius: 10, fontWeight: 700, margin: '0 auto' }}
+        >
+          Перейти к поиску
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
