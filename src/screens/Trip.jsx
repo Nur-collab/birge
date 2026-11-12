@@ -513,7 +513,7 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
         .passengers-section { margin-top: 12px; }
         .seats-counter {
           display: flex; align-items: center; gap: 8px;
-          background: #f0fdf4; border-radius: 10px; padding: 8px 12px;
+          background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 12px;
           margin-bottom: 10px;
         }
         .seats-dots { display: flex; gap: 4px; margin-left: auto; }
@@ -522,12 +522,12 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
           transition: background 0.2s;
         }
         .seat-dot.taken { background: #10b981; }
-        .seat-dot.free { background: #d1d5db; }
+        .seat-dot.free { background: var(--border-strong); }
 
         .passengers-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
         .passenger-row {
           display: flex; align-items: center; gap: 10px;
-          background: #f9fafb; border-radius: 10px; padding: 8px 10px;
+          background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 10px;
         }
 
         /* Going button */
@@ -541,13 +541,13 @@ export default function Trip({ trip, currentUser, onPanic, onFinish, onCancelled
           box-shadow: 0 3px 12px rgba(16,185,129,0.3);
         }
         .going-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(16,185,129,0.4); }
-        .going-btn:disabled:not(.going-btn-done) { background: #e5e7eb; color: #9ca3af; box-shadow: none; cursor: default; }
-        .going-btn-done { background: #d1fae5 !important; color: #065f46 !important; box-shadow: none !important; cursor: default !important; }
+        .going-btn:disabled:not(.going-btn-done) { background: var(--border-subtle); color: var(--text-subtle); box-shadow: none; cursor: default; }
+        .going-btn-done { background: rgba(16,185,129,0.2) !important; color: #10b981 !important; box-shadow: none !important; cursor: default !important; }
 
         /* Partner card (passenger) */
         .partner-card {
           display: flex; align-items: flex-start; gap: 10px;
-          background: #f9fafb; border-radius: 12px; padding: 10px 12px; margin-top: 10px;
+          background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 12px; margin-top: 10px;
         }
 
         .trip-chat { flex: 1; display: flex; flex-direction: column; }

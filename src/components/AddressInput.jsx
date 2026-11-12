@@ -94,16 +94,17 @@ export default function AddressInput({ value, onChange, placeholder, iconColor =
                 style={{
                     width: '100%',
                     padding: '12px 12px 12px 40px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
                     fontSize: '1rem',
-                    background: 'white',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-main)',
                     outline: 'none',
-                    transition: 'border-color 0.2s',
+                    transition: 'border-color 0.2s, background-color 0.2s',
                     boxSizing: 'border-box',
                 }}
                 onFocusCapture={(e) => { e.target.style.borderColor = iconColor; }}
-                onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border-subtle)'; }}
             />
 
             {showDropdown && (
@@ -114,10 +115,10 @@ export default function AddressInput({ value, onChange, placeholder, iconColor =
                         top: '100%',
                         left: 0,
                         right: 0,
-                        background: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '12px',
+                        boxShadow: 'var(--floating-shadow)',
                         zIndex: 999,
                         overflow: 'hidden',
                         marginTop: '4px',
@@ -133,18 +134,18 @@ export default function AddressInput({ value, onChange, placeholder, iconColor =
                                 alignItems: 'center',
                                 gap: '10px',
                                 width: '100%',
-                                padding: '10px 14px',
+                                padding: '11px 14px',
                                 border: 'none',
-                                background: 'none',
+                                background: 'transparent',
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 fontSize: '0.9rem',
-                                color: '#374151',
-                                transition: 'background 0.1s',
-                                borderBottom: i < suggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
+                                color: 'var(--text-main)',
+                                transition: 'background 0.15s',
+                                borderBottom: i < suggestions.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                             <MapPin size={14} color={iconColor} />
                             {place}

@@ -5,21 +5,35 @@ import { useTranslation } from 'react-i18next';
 import RealMap from '../components/RealMap';
 import AddressInput from '../components/AddressInput';
 
-// Популярные жилые комплексы, микрорайоны и ориентиры Бишкека (СТРОГО БЕЗ МЕЖГОРОДА)
+// Популярные жилые комплексы, микрорайоны и ориентиры Бишкека и Чуйской области
 const BISHKEK_HUBS = [
-  { name: 'ЖК «Ала-Арча»' },
-  { name: 'мкр. Асанбай' },
-  { name: 'мкр. Джал' },
-  { name: 'ЦУМ (Центр)' },
-  { name: 'ТРК Asia Mall' },
-  { name: 'мкр. Тунгуч' },
-  { name: 'мкр. Восток-5' },
-  { name: 'ЖК «Ихлас»' },
-  { name: 'ЖК «Елисейские Поля»' },
-  { name: 'Рынок Дордой' },
-  { name: 'Кудайберген' },
-  { name: 'ж/м Ак-Өргө' },
-  { name: 'Политех / БГУ' },
+  { name: 'ЦУМ (Центр)', cat: 'center' },
+  { name: 'ТРК Asia Mall', cat: 'center' },
+  { name: 'Южная Магистраль', cat: 'center' },
+  { name: 'мкр. Асанбай', cat: 'districts' },
+  { name: 'мкр. Джал', cat: 'districts' },
+  { name: 'мкр. Тунгуч', cat: 'districts' },
+  { name: 'мкр. Восток-5', cat: 'districts' },
+  { name: 'ЖК «Ала-Арча»', cat: 'districts' },
+  { name: 'ж/м Ак-Өргө', cat: 'districts' },
+  { name: 'Рынок Дордой', cat: 'markets' },
+  { name: 'Ошский базар', cat: 'markets' },
+  { name: 'Аламединский базар', cat: 'markets' },
+  { name: 'Кудайберген', cat: 'markets' },
+  { name: 'Аэропорт Манас', cat: 'chuy' },
+  { name: 'г. Кант', cat: 'chuy' },
+  { name: 'г. Токмок', cat: 'chuy' },
+  { name: 'с. Сокулук', cat: 'chuy' },
+  { name: 'г. Кара-Балта', cat: 'chuy' },
+  { name: 'Политех / БГУ', cat: 'center' },
+];
+
+const HUB_CATEGORIES = [
+  { id: 'all', label: '⚡ Все' },
+  { id: 'center', label: '🏙️ Центр' },
+  { id: 'districts', label: '🏘️ Районы' },
+  { id: 'markets', label: '🛒 Базары' },
+  { id: 'chuy', label: '🚗 Пригород' },
 ];
 
 export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
@@ -28,6 +42,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   const [from, setFrom] = useState('Жилмассив Ала-Арча');
   const [to, setTo] = useState('ЦУМ (Центр)');
   const [tagTarget, setTagTarget] = useState('to'); // 'from' или 'to'
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [time, setTime] = useState('08:15');
   const [date, setDate] = useState(localDateStr());
   const [seats, setSeats] = useState(3);
@@ -78,6 +93,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
   };
 
   const handleTagClick = (placeName) => {
+    if ('vibrate' in navigator) navigator.vibrate?.(10);
     if (tagTarget === 'from') {
       setFrom(placeName);
       setErrors(prev => ({ ...prev, from: undefined }));
@@ -120,7 +136,10 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           <button
             type="button"
             className={`role-seg-btn ${role === 'passenger' ? 'seg-active seg-passenger' : ''}`}
-            onClick={() => setRole('passenger')}
+            onClick={() => {
+              if ('vibrate' in navigator) navigator.vibrate?.(10);
+              setRole('passenger');
+            }}
           >
             <User size={16} />
             <span>{t('matches.passenger')}</span>
@@ -128,7 +147,10 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           <button
             type="button"
             className={`role-seg-btn ${role === 'driver' ? 'seg-active seg-driver' : ''}`}
-            onClick={() => setRole('driver')}
+            onClick={() => {
+              if ('vibrate' in navigator) navigator.vibrate?.(10);
+              setRole('driver');
+            }}
           >
             <Car size={16} />
             <span>{t('matches.driver')}</span>
@@ -221,7 +243,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           </div>
         </div>
 
-        {/* Быстрые теги (ЖК и микрорайоны Бишкека - БЕЗ МЕЖГОРОДА) */}
+        {/* Быстрые теги (ЖК и микрорайоны Бишкека и Чуйской области) */}
         <div className="quick-tags-wrap">
           <div className="quick-tags-header">
             <span className="quick-tags-title">📍 {t('tags.title')}</span>
@@ -242,8 +264,26 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
               </button>
             </div>
           </div>
+
+          {/* Фильтр категорий локаций */}
+          <div className="quick-cat-tabs">
+            {HUB_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                className={`quick-cat-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+                onClick={() => {
+                  if ('vibrate' in navigator) navigator.vibrate?.(10);
+                  setSelectedCategory(cat.id);
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
           <div className="quick-tags-list">
-            {BISHKEK_HUBS.map((hub) => (
+            {BISHKEK_HUBS.filter(h => selectedCategory === 'all' || h.cat === selectedCategory).map((hub) => (
               <button
                 key={hub.name}
                 type="button"
@@ -359,22 +399,25 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
 
         /* Role segment */
         .role-segment-wrap {
-          background: white;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
           border-radius: 18px;
           padding: 14px 16px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+          box-shadow: var(--card-shadow);
+          transition: background-color 0.25s, border-color 0.25s;
         }
         .role-segment-label {
           font-size: 0.72rem;
           font-weight: 700;
-          color: #94a3b8;
+          color: var(--text-subtle);
           text-transform: uppercase;
           letter-spacing: 0.8px;
           margin-bottom: 10px;
         }
         .role-segment {
           display: flex;
-          background: #f1f5f9;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
           border-radius: 14px;
           padding: 4px;
           gap: 4px;
@@ -389,48 +432,50 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           border: none;
           border-radius: 11px;
           background: transparent;
-          color: #64748b;
+          color: var(--text-muted);
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.22s ease;
           letter-spacing: 0.1px;
         }
-        .role-seg-btn:hover { background: rgba(255,255,255,0.7); }
+        .role-seg-btn:hover { background: var(--border-subtle); }
         .seg-active {
-          background: white !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          background: var(--bg-card) !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
-        .seg-passenger.seg-active { color: #059669; }
-        .seg-driver.seg-active { color: #d97706; }
+        .seg-passenger.seg-active { color: #10b981; }
+        .seg-driver.seg-active { color: #f59e0b; }
 
         /* Map */
         .mini-map-wrap {
           border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+          border: 1px solid var(--border-subtle);
+          box-shadow: var(--card-shadow);
         }
 
         /* Form */
         .trip-form {
           border-radius: 18px;
-          padding: 1.2rem;
-          background: white;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-          border: 1px solid #f1f5f9;
+          padding: 1.25rem;
+          background: var(--bg-card);
+          box-shadow: var(--card-shadow);
+          border: 1px solid var(--border-subtle);
+          transition: background-color 0.25s, border-color 0.25s;
         }
         .form-title {
-          font-size: 0.95rem;
+          font-size: 0.98rem;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--text-main);
           margin-bottom: 1rem;
           letter-spacing: 0.1px;
         }
 
         /* Route block */
         .route-block {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
           border-radius: 14px;
           overflow: hidden;
           margin-bottom: 0.9rem;
@@ -448,27 +493,27 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
         .dot.green { background: #10b981; }
         .dot.red { background: #f43f5e; }
         .route-field { flex: 1; }
-        .route-divider-line { height: 1px; background: #e2e8f0; margin: 0 14px; }
+        .route-divider-line { height: 1px; background: var(--border-subtle); margin: 0 14px; }
         .geo-btn {
           width: 32px; height: 32px; flex-shrink: 0;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border-subtle);
           border-radius: 10px;
-          background: white;
+          background: var(--bg-card);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
           color: #10b981;
           transition: all 0.2s;
         }
-        .geo-btn:hover:not(:disabled) { background: #f0fdf4; border-color: #10b981; }
-        .geo-btn:disabled { color: #9ca3af; cursor: wait; }
+        .geo-btn:hover:not(:disabled) { background: var(--border-subtle); border-color: #10b981; }
+        .geo-btn:disabled { color: var(--text-subtle); cursor: wait; }
 
         /* DateTime */
         .datetime-block {
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border-subtle);
           border-radius: 14px;
           overflow: hidden;
           margin-bottom: 1rem;
-          background: #f8fafc;
+          background: var(--bg-subtle);
         }
         .time-row {
           display: flex;
@@ -478,13 +523,13 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           border: none;
           background: transparent;
         }
-        .time-label { flex: 1; font-size: 0.83rem; font-weight: 500; color: #64748b; }
+        .time-label { flex: 1; font-size: 0.83rem; font-weight: 500; color: var(--text-muted); }
         .time-input {
           border: none;
           background: transparent;
           font-size: 0.95rem;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--text-main);
           outline: none;
           cursor: pointer;
         }
@@ -502,7 +547,7 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           border-radius: 8px;
           transition: background 0.15s;
         }
-        .date-label-text:hover { background: #ede9fe; }
+        .date-label-text:hover { background: rgba(99, 102, 241, 0.15); }
         .date-input-hidden {
           position: absolute;
           width: 100%; height: 100%;
@@ -518,15 +563,15 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           gap: 8px;
           background: linear-gradient(135deg, #10b981, #059669) !important;
           box-shadow: 0 4px 20px rgba(16,185,129,0.3) !important;
-          font-size: 0.93rem;
+          font-size: 0.95rem;
           font-weight: 700;
           letter-spacing: 0.2px;
           margin-top: 0;
           border-radius: 14px !important;
         }
         .search-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 24px rgba(16,185,129,0.4) !important;
+          transform: translateY(-1.5px);
+          box-shadow: 0 8px 24px rgba(16,185,129,0.42) !important;
         }
 
         /* Seats selector */
@@ -534,22 +579,22 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
           border-radius: 12px;
           padding: 10px 14px;
           margin-bottom: 1rem;
         }
-        .seats-label { font-size: 0.85rem; font-weight: 500; color: #64748b; }
+        .seats-label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
         .seats-btns { display: flex; gap: 6px; }
         .seat-btn {
           width: 36px; height: 36px;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid var(--border-subtle);
           border-radius: 10px;
-          background: white;
+          background: var(--bg-card);
           font-size: 0.9rem;
           font-weight: 700;
-          color: #64748b;
+          color: var(--text-muted);
           cursor: pointer;
           transition: all 0.18s;
         }
@@ -561,13 +606,13 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           box-shadow: 0 2px 8px rgba(16,185,129,0.3);
         }
 
-        /* Quick Tags (Bishkek) */
+        /* Quick Tags (Bishkek & Chuy) */
         .quick-tags-wrap {
-          margin-bottom: 0.9rem;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          margin-bottom: 0.95rem;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
           border-radius: 14px;
-          padding: 10px 12px;
+          padding: 11px 13px;
         }
         .quick-tags-header {
           display: flex;
@@ -576,13 +621,13 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           margin-bottom: 8px;
         }
         .quick-tags-title {
-          font-size: 0.78rem;
+          font-size: 0.8rem;
           font-weight: 700;
-          color: #475569;
+          color: var(--text-main);
         }
         .quick-tags-toggle {
           display: flex;
-          background: #e2e8f0;
+          background: var(--border-subtle);
           border-radius: 8px;
           padding: 2px;
           gap: 2px;
@@ -592,16 +637,44 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           background: transparent;
           font-size: 0.72rem;
           font-weight: 600;
-          color: #64748b;
+          color: var(--text-muted);
           padding: 3px 8px;
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.15s;
         }
         .tag-target-btn.active {
-          background: white;
-          color: #0f172a;
+          background: var(--bg-card);
+          color: var(--text-main);
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .quick-cat-tabs {
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          margin-bottom: 10px;
+          padding-bottom: 2px;
+          scrollbar-width: none;
+        }
+        .quick-cat-tabs::-webkit-scrollbar { display: none; }
+        .quick-cat-btn {
+          white-space: nowrap;
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-card);
+          color: var(--text-muted);
+          font-size: 0.73rem;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.18s;
+          flex-shrink: 0;
+        }
+        .quick-cat-btn.active {
+          background: #10b981;
+          color: white;
+          border-color: #10b981;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
         }
         .quick-tags-list {
           display: flex;
@@ -614,17 +687,17 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
           height: 4px;
         }
         .quick-tags-list::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
+          background: var(--border-strong);
           border-radius: 4px;
         }
         .quick-tag-chip {
           white-space: nowrap;
-          border: 1px solid #cbd5e1;
-          background: white;
-          color: #334155;
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-card);
+          color: var(--text-main);
           font-size: 0.78rem;
           font-weight: 600;
-          padding: 5px 10px;
+          padding: 5px 11px;
           border-radius: 20px;
           cursor: pointer;
           transition: all 0.18s;
@@ -632,14 +705,14 @@ export default function Dashboard({ onSearch, currentUser, onShowSettings }) {
         }
         .quick-tag-chip:hover {
           border-color: #10b981;
-          color: #059669;
-          background: #f0fdf4;
+          color: #10b981;
+          background: var(--bg-subtle);
         }
         .quick-tag-chip.selected {
           border-color: #10b981;
           background: #10b981;
           color: white;
-          box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+          box-shadow: 0 2px 8px rgba(16,185,129,0.3);
         }
       `}</style>
     </div>

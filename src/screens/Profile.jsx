@@ -454,7 +454,8 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f9fafb;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-subtle);
           border-radius: 12px;
           padding: 12px;
         }
@@ -467,7 +468,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         }
         .stat-value {
           font-weight: 700;
-          color: var(--dark);
+          color: var(--text-main);
           display: flex;
           align-items: center;
           gap: 4px;
@@ -475,14 +476,14 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         }
         .stat-label {
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .stat-divider {
           width: 1px;
           height: 30px;
-          background: #e5e7eb;
+          background: var(--border-subtle);
         }
         .limits-card {
           padding: 1.2rem;
@@ -499,14 +500,15 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           gap: 8px;
           font-weight: 600;
           font-size: 0.9rem;
+          color: var(--text-main);
         }
         .limits-count {
           font-weight: 700;
-          color: var(--dark);
+          color: var(--text-main);
         }
         .progress-bar {
           height: 8px;
-          background: #e5e7eb;
+          background: var(--border-subtle);
           border-radius: 4px;
           overflow: hidden;
           margin-bottom: 8px;
@@ -518,13 +520,13 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         }
         .limits-hint {
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--text-muted);
           line-height: 1.4;
         }
         .reviews-section h3 {
           font-size: 1.1rem;
           margin-bottom: 1rem;
-          color: var(--dark);
+          color: var(--text-main);
         }
         .reviews-list {
           display: flex;
@@ -543,6 +545,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         .review-author {
           font-weight: 600;
           font-size: 0.9rem;
+          color: var(--text-main);
         }
         .review-rating {
           display: flex;
@@ -550,7 +553,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         }
         .review-text {
           font-size: 0.9rem;
-          color: #4b5563;
+          color: var(--text-muted);
           font-style: italic;
           line-height: 1.4;
         }
@@ -560,7 +563,7 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
         }
         .car-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+          box-shadow: var(--card-shadow-hover);
         }
         .settings-menu {
           display: flex;
@@ -572,18 +575,19 @@ export default function Profile({ currentUser: userProp, onLogout, onShowSetting
           display: flex;
           align-items: center;
           gap: 12px;
-          background: white;
+          background: var(--bg-card);
           padding: 16px;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 14px;
           font-size: 1rem;
-          font-weight: 500;
-          color: #374151;
+          font-weight: 600;
+          color: var(--text-main);
           cursor: pointer;
-          transition: background 0.2s;
+          transition: background 0.2s, transform 0.15s;
         }
         .menu-item:hover {
-          background: #f9fafb;
+          background: var(--bg-subtle);
+          transform: translateX(2px);
         }
       `}</style>
     </div>

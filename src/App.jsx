@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Home, Users, Map, User, Calendar } from 'lucide-react';
+import { Home, Users, Map, User, Calendar, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Dashboard from './screens/Dashboard';
 import Matches from './screens/Matches';
@@ -30,6 +30,30 @@ const loadTrip = () => {
 
 function App() {
   const { t } = useTranslation();
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('birge_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('birge_theme', theme);
+    } catch (_) {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    if ('vibrate' in navigator) navigator.vibrate?.(10);
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
@@ -639,11 +663,22 @@ function App() {
             <div className="header-logo-badge">Б</div>
             <span className="header-title">BIRGE</span>
           </div>
-          {currentUser && (
-            <span className="header-greeting">
-              {currentUser.name?.split(' ')[0] || 'Привет'} 👋
-            </span>
-          )}
+          <div className="header-actions">
+            {currentUser && (
+              <span className="header-greeting">
+                {currentUser.name?.split(' ')[0] || 'Привет'} 👋
+              </span>
+            )}
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
+              aria-label="Сменить тему оформления"
+            >
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -687,46 +722,51 @@ function App() {
       </nav>
 
       <style>{`
-        .app-container { padding-bottom: 88px; min-height: 100vh; }
+        .app-container {
+          padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
         .bottom-nav {
           position: fixed;
-          bottom: 12px;
+          bottom: calc(12px + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
-          width: calc(100% - 28px);
-          max-width: 452px;
-          background: rgba(255,255,255,0.95);
+          width: calc(100% - 24px);
+          max-width: 456px;
+          background: var(--nav-bg);
           backdrop-filter: blur(24px);
           -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(0,0,0,0.07);
+          border: 1px solid var(--nav-border);
           border-radius: 28px;
-          box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+          box-shadow: var(--floating-shadow);
           display: flex;
           justify-content: space-around;
           padding: 6px;
           z-index: 100;
+          transition: background-color 0.25s ease, border-color 0.25s ease;
         }
         .nav-item {
           flex: 1;
           display: flex; flex-direction: column; align-items: center;
-          gap: 3px; background: none; border: none; color: #94a3b8;
+          gap: 3px; background: none; border: none; color: var(--text-subtle);
           font-size: 0.68rem; font-weight: 600; cursor: pointer;
           position: relative; transition: all 0.2s;
           padding: 9px 6px 8px;
           border-radius: 20px;
           letter-spacing: 0.2px;
         }
-        .nav-item:hover { color: #64748b; background: #f8fafc; }
+        .nav-item:hover { color: var(--text-main); background: var(--bg-subtle); }
         .nav-item.active {
-          color: #059669;
-          background: #f0fdf4;
+          color: var(--primary);
+          background: var(--nav-active-bg);
         }
         .badge {
           position: absolute; top: 2px; right: 12px;
           background: #f43f5e; color: white; font-size: 0.62rem;
           font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
-          padding: 0 4px; border: 2px solid white;
+          padding: 0 4px; border: 2px solid var(--bg-app);
           box-shadow: 0 2px 6px rgba(244,63,94,0.4);
         }
         .badge.dot {

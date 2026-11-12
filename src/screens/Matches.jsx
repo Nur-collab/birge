@@ -361,18 +361,25 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
 
       <style>{`
         .matches-list { display: flex; flex-direction: column; gap: 1rem; }
-        .match-card { padding: 1rem; transition: transform 0.2s, box-shadow 0.2s; }
-        .match-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .match-card {
+          padding: 1.15rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius);
+          box-shadow: var(--card-shadow);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .match-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
         .match-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
-        .user-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .user-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg-app); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .user-info { flex: 1; }
-        .user-name { font-weight: 700; color: var(--dark); display: flex; align-items: center; gap: 4px; }
-        .user-rating { font-size: 0.85rem; color: #6b7280; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-        .glass-badge { background: rgba(76,175,80,0.1); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; }
-        .match-route { background: #f9fafb; border-radius: 8px; padding: 12px; margin-bottom: 1rem; }
-        .route-point { font-size: 0.85rem; color: #4b5563; }
-        .route-divider { height: 12px; width: 2px; background: #e5e7eb; margin: 4px 0 4px 6px; }
-        .match-btn { margin-top: 0; padding: 10px; width: 100%; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
+        .user-name { font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+        .user-rating { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+        .glass-badge { background: rgba(16,185,129,0.15); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; }
+        .match-route { background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; margin-bottom: 1rem; }
+        .route-point { font-size: 0.85rem; color: var(--text-muted); }
+        .route-divider { height: 12px; width: 2px; background: var(--border-subtle); margin: 4px 0 4px 6px; }
+        .match-btn { margin-top: 0; padding: 10px; width: 100%; border-radius: 12px; font-weight: 600; font-size: 0.9rem; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* Date chips */
@@ -386,28 +393,28 @@ export default function Matches({ matches = [], setMatches, onConnect, onCancel,
           flex-shrink: 0;
           padding: 6px 14px;
           border-radius: 20px;
-          border: 1.5px solid #e5e7eb;
-          background: white;
+          border: 1.5px solid var(--border-subtle);
+          background: var(--bg-card);
           font-size: 0.8rem;
           font-weight: 600;
-          color: #6b7280;
+          color: var(--text-muted);
           cursor: pointer;
           transition: all 0.18s;
           white-space: nowrap;
         }
-        .date-chip:hover { border-color: #6366f1; color: #6366f1; }
+        .date-chip:hover { border-color: var(--primary); color: var(--primary); }
         .date-chip.active {
-          background: #6366f1;
-          border-color: #6366f1;
+          background: var(--primary);
+          border-color: var(--primary);
           color: white;
-          box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+          box-shadow: 0 2px 8px var(--primary-glow);
         }
 
         /* Date badge on card */
         .date-badge {
           display: flex; align-items: center; gap: 3px;
           font-size: 0.7rem; font-weight: 600;
-          color: #6366f1; background: #ede9fe;
+          color: #6366f1; background: rgba(99,102,241,0.15);
           padding: 2px 8px; border-radius: 10px;
         }
       `}</style>
